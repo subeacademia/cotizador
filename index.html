@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotizador PDF | SUBE IA TECH</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css?family=Poppins:700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main>
+    <section id="form-section">
+      <div style="text-align:center;margin-bottom:1.2rem;">
+        <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" style="height:64px;max-width:90%;">
+      </div>
+      <form id="quote-form">
+        <h1>Cotizador SUBE IA TECH</h1>
+        <div class="form-group">
+          <label for="nombre">Nombre completo*</label>
+          <input type="text" id="nombre" name="nombre" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email*</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="rut">RUT (cliente)*</label>
+          <input type="text" id="rut" name="rut" required>
+        </div>
+        <div class="form-group">
+          <label for="empresa">Empresa*</label>
+          <input type="text" id="empresa" name="empresa" required>
+        </div>
+        <div class="form-group">
+          <label for="moneda">Moneda*</label>
+          <select id="moneda" name="moneda" required>
+            <option value="CLP">CLP</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="ARS">ARS</option>
+            <option value="BRL">BRL</option>
+            <option value="PEN">PEN</option>
+            <option value="UYU">UYU</option>
+            <option value="PYG">PYG</option>
+            <option value="BOB">BOB</option>
+          </select>
+        </div>
+        <fieldset class="form-group">
+          <legend>Servicios*</legend>
+          <div class="servicio-option">
+            <input type="checkbox" id="charlas" name="servicios" value="Charlas">
+            <label for="charlas"><span class="icon-svg" id="icon-charlas"></span>Charlas – Presentaciones orales</label>
+          </div>
+          <div class="servicio-option">
+            <input type="checkbox" id="capacitaciones" name="servicios" value="Capacitaciones">
+            <label for="capacitaciones"><span class="icon-svg" id="icon-capacitaciones"></span>Capacitaciones – Talleres prácticos</label>
+          </div>
+          <div class="servicio-option">
+            <input type="checkbox" id="certificaciones" name="servicios" value="Certificaciones">
+            <label for="certificaciones"><span class="icon-svg" id="icon-certificaciones"></span>Certificaciones – Programas con diploma</label>
+          </div>
+          <div class="servicio-option">
+            <input type="checkbox" id="consultorias" name="servicios" value="Consultorías">
+            <label for="consultorias"><span class="icon-svg" id="icon-consultorias"></span>Consultorías – Diagnóstico y plan de acción</label>
+          </div>
+          <div class="servicio-option">
+            <input type="checkbox" id="mentorias" name="servicios" value="Mentorías">
+            <label for="mentorias"><span class="icon-svg" id="icon-mentorias"></span>Mentorías – Acompañamiento a largo plazo</label>
+          </div>
+          <div class="servicio-option">
+            <input type="checkbox" id="asesorias" name="servicios" value="Asesorías de IA">
+            <label for="asesorias"><span class="icon-svg" id="icon-asesorias"></span>Asesorías de IA – Soporte en proyectos de IA</label>
+          </div>
+        </fieldset>
+        <div id="servicios-detalle"></div>
+        <div class="form-group">
+          <label for="descuento">Descuento (%)</label>
+          <input type="number" id="descuento" name="descuento" min="0" max="100" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="atendedor">Atendido por*</label>
+          <select id="atendedor" name="atendedor" required>
+            <option value="">Selecciona...</option>
+            <option value="Rodrigo Carrillo">Rodrigo Carrillo</option>
+            <option value="Bruno Villalobos">Bruno Villalobos</option>
+            <option value="Mario Muñoz">Mario Muñoz</option>
+            <option value="Nicolás Valenzuela">Nicolás Valenzuela</option>
+            <option value="Ignacio Villarroel">Ignacio Villarroel</option>
+          </select>
+        </div>
+        <div class="form-group"><label for="notas_adicionales">Notas adicionales (opcional):</label><textarea id="notas_adicionales" name="notas_adicionales" rows="3" placeholder="Agrega detalles, condiciones, observaciones, etc."></textarea></div>
+      </form>
+      <button id="descargar-pdf">Generar PDF</button>
+    </section>
+    <section id="pdf-preview">
+      <div id="invoice" style="display:none;"></div>
+      <button id="emitir-pdf" style="display:none;margin-top:1.5rem;">Confirmar y emitir PDF</button>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html> 
