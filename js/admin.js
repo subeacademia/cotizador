@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkFirebase = setInterval(() => {
       if (window.db) {
         clearInterval(checkFirebase);
-        cargarCotizaciones();
-        setupEventListeners();
+  cargarCotizaciones();
+  setupEventListeners();
       }
     }, 100);
   }
@@ -99,7 +99,7 @@ function mostrarLoading(mostrar) {
   if (cotizacionesList) {
     if (mostrar) {
       cotizacionesList.innerHTML = '<div class="loading">Cargando cotizaciones...</div>';
-    }
+  }
   }
 }
 
@@ -144,7 +144,7 @@ function renderizarCotizaciones() {
       </div>
       <div class="cotizacion-actions">
         <button onclick="previsualizarCotizacion('${cotizacion.id}')" class="btn btn-preview">👁️ Previsualizar</button>
-        <button onclick="generarPDF('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
+        <button onclick="generarPDFAlternativo('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
         <button onclick="verDetalles('${cotizacion.id}')" class="btn btn-details">📋 Ver</button>
       </div>
     </div>
@@ -303,7 +303,7 @@ function renderizarCotizacionesFiltradas(cotizacionesFiltradas) {
             </div>
           </div>
           <div class="cotizacion-actions">
-            <button onclick="generarPDF('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
+            <button onclick="generarPDFAlternativo('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
             <button onclick="verDetalles('${cotizacion.id}')" class="btn btn-details">👁️ Ver</button>
             <button onclick="previsualizarCotizacion('${cotizacion.id}')" class="btn btn-preview">👁️ Previsualizar</button>
           </div>
@@ -318,7 +318,26 @@ function renderizarCotizacionesFiltradas(cotizacionesFiltradas) {
 function formatearFecha(fecha) {
   if (!fecha) return 'Fecha no disponible';
   
-  const fechaObj = fecha instanceof Date ? fecha : new Date(fecha);
+  let fechaObj;
+  
+  // Si es un timestamp de Firestore
+  if (fecha && typeof fecha === 'object' && fecha.toDate) {
+    fechaObj = fecha.toDate();
+  }
+  // Si es una fecha válida
+  else if (fecha instanceof Date) {
+    fechaObj = fecha;
+  }
+  // Si es un string o número, intentar crear Date
+  else {
+    fechaObj = new Date(fecha);
+  }
+  
+  // Verificar que la fecha sea válida
+  if (isNaN(fechaObj.getTime())) {
+    return 'Fecha no disponible';
+  }
+  
   return fechaObj.toLocaleDateString('es-CL', {
     year: 'numeric',
     month: 'short',
@@ -332,10 +351,25 @@ function formatearFecha(fecha) {
 async function generarPDF(cotizacionId) {
   try {
     console.log('📄 Generando PDF para cotización:', cotizacionId);
+    console.log('📄 Cotizaciones disponibles:', cotizaciones.length);
     
     const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
     if (!cotizacion) {
+      console.error('❌ Cotización no encontrada en el array local');
       alert('Cotización no encontrada');
+      return;
+    }
+    
+    console.log('📄 Datos de cotización encontrados:', cotizacion);
+    
+    // Verificar que todos los datos necesarios estén presentes
+    const datosRequeridos = ['nombre', 'email', 'servicios', 'codigo', 'total'];
+    const datosFaltantes = datosRequeridos.filter(campo => !cotizacion[campo]);
+    
+    if (datosFaltantes.length > 0) {
+      console.error('❌ Datos faltantes en la cotización:', datosFaltantes);
+      console.error('❌ Datos completos de la cotización:', cotizacion);
+      alert(`La cotización tiene datos incompletos: ${datosFaltantes.join(', ')}. Por favor, previsualiza primero para verificar los datos.`);
       return;
     }
     
@@ -344,11 +378,45 @@ async function generarPDF(cotizacionId) {
       return;
     }
     
-    if (typeof renderInvoice !== 'function') {
+    // Importar la plantilla dinámicamente si no está disponible
+    let renderInvoice;
+    try {
+      const templateModule = await import('../templates/invoice-template.js');
+      renderInvoice = templateModule.renderInvoice;
+      console.log('✅ Plantilla importada correctamente');
+    } catch (error) {
+      console.error('❌ Error al importar plantilla:', error);
       alert('Error: La función de renderizado no está disponible.');
       return;
     }
     
+    // Preparar datos para la plantilla con validación adicional
+    const datosPlantilla = {
+      nombre: cotizacion.nombre || '',
+      email: cotizacion.email || '',
+      rut: cotizacion.rut || '',
+      empresa: cotizacion.empresa || '',
+      moneda: cotizacion.moneda || 'CLP',
+      codigo: cotizacion.codigo || '',
+      fecha: cotizacion.fecha ? formatearFecha(cotizacion.fecha) : new Date().toLocaleDateString('es-CL'),
+      serviciosData: Array.isArray(cotizacion.servicios) ? cotizacion.servicios : [],
+      total: typeof cotizacion.total === 'number' ? cotizacion.total : 0,
+      atendedor: cotizacion.atendido || '',
+      notasAdicionales: cotizacion.notas || '',
+      descuento: typeof cotizacion.descuento === 'number' ? cotizacion.descuento : 0
+    };
+    
+    console.log('📄 Datos preparados para PDF:', datosPlantilla);
+    console.log('📄 Servicios:', datosPlantilla.serviciosData);
+    
+    // Verificar que los servicios tengan la estructura correcta
+    if (datosPlantilla.serviciosData.length === 0) {
+      console.error('❌ No hay servicios en la cotización');
+      alert('La cotización no tiene servicios. Por favor, previsualiza primero para verificar los datos.');
+      return;
+    }
+    
+    // Crear elemento temporal para el PDF
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -357,50 +425,113 @@ async function generarPDF(cotizacionId) {
     tempDiv.style.backgroundColor = 'white';
     tempDiv.style.padding = '20mm';
     tempDiv.style.zIndex = '-1';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
     
-    tempDiv.innerHTML = renderInvoice({
-      nombre: cotizacion.nombre,
-      email: cotizacion.email,
-      rut: cotizacion.rut,
-      empresa: cotizacion.empresa,
-      moneda: cotizacion.moneda,
-      codigo: cotizacion.codigo,
-      fecha: cotizacion.fecha,
-      serviciosData: cotizacion.servicios,
-      total: cotizacion.total,
-      atendedor: cotizacion.atendido,
-      notasAdicionales: cotizacion.notas,
-      descuento: cotizacion.descuento
-    });
+    // Generar HTML usando la plantilla
+    const htmlGenerado = renderInvoice(datosPlantilla);
+    console.log('📄 HTML generado (primeros 500 caracteres):', htmlGenerado.substring(0, 500));
+    
+    tempDiv.innerHTML = htmlGenerado;
+    
+    // Verificar que el HTML se haya generado correctamente
+    if (!tempDiv.innerHTML || tempDiv.innerHTML.trim() === '') {
+      console.error('❌ HTML generado está vacío');
+      alert('Error: No se pudo generar el contenido del PDF. Por favor, inténtalo de nuevo.');
+      return;
+    }
+    
+    // Esperar a que las imágenes se carguen
+    const images = tempDiv.querySelectorAll('img');
+    if (images.length > 0) {
+      console.log('📄 Esperando a que las imágenes se carguen...');
+      await Promise.all(Array.from(images).map(img => {
+        return new Promise((resolve) => {
+          if (img.complete) {
+            console.log('📄 Imagen ya cargada:', img.src);
+            resolve();
+          } else {
+            img.onload = () => {
+              console.log('📄 Imagen cargada exitosamente:', img.src);
+              resolve();
+            };
+            img.onerror = () => {
+              console.warn('⚠️ Error al cargar imagen:', img.src);
+              resolve(); // Continuar incluso si hay error
+            };
+          }
+        });
+      }));
+    }
+    
+    // Agregar estilos CSS necesarios
+    const style = document.createElement('style');
+    style.textContent = `
+      .pdf-header img { height: 80px; max-width: 100%; }
+      .gradient { border: none; height: 2px; background: linear-gradient(90deg, #00B8D9, #FF4EFF); margin: 20px 0; }
+      .tabla-servicios { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+      .tabla-servicios th, .tabla-servicios td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      .tabla-servicios th { background-color: #f2f2f2; font-weight: bold; }
+      .total-row { text-align: right; font-size: 1.2em; margin: 10px 0; color: #00B8D9; font-weight: bold; }
+      .descuento-aplicado { color: #FF4EFF; font-weight: bold; text-align: right; margin: 10px 0; }
+      .footer img { height: 48px; max-width: 100%; }
+      body { font-family: Arial, sans-serif; }
+    `;
+    tempDiv.appendChild(style);
     
     document.body.appendChild(tempDiv);
     
+    // Verificar que el elemento se haya agregado correctamente
+    console.log('📄 Elemento temporal agregado al DOM');
+    console.log('📄 Contenido del elemento temporal:', tempDiv.innerHTML.substring(0, 200));
+    
+    // Configuración optimizada para html2pdf
     const opt = {
-      margin: 0,
+      margin: [10, 10, 10, 10],
       filename: `${cotizacion.codigo}_cotizacion.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      image: { type: 'jpeg', quality: 0.8 },
+      html2canvas: { 
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: true, // Habilitar logging para debug
+        imageTimeout: 15000,
+        removeContainer: true
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      }
     };
     
-    html2pdf().set(opt).from(tempDiv).save()
-      .then(() => {
-        console.log('✅ PDF generado exitosamente');
-        if (document.body.contains(tempDiv)) {
-          document.body.removeChild(tempDiv);
-        }
-      })
-      .catch((error) => {
-        console.error('❌ Error al generar PDF:', error);
-        if (document.body.contains(tempDiv)) {
-          document.body.removeChild(tempDiv);
-        }
-        alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
-      });
+    console.log('📄 Iniciando generación de PDF...');
+    console.log('📄 Configuración html2pdf:', opt);
+    
+    // Generar PDF
+    await html2pdf().set(opt).from(tempDiv).save();
+    
+    console.log('✅ PDF generado exitosamente');
+    
+    // Limpiar elemento temporal
+    if (document.body.contains(tempDiv)) {
+      document.body.removeChild(tempDiv);
+      console.log('📄 Elemento temporal removido del DOM');
+    }
     
   } catch (error) {
     console.error('❌ Error al generar PDF:', error);
-    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Limpiar elemento temporal en caso de error
+    const tempDiv = document.querySelector('div[style*="-9999px"]');
+    if (tempDiv && document.body.contains(tempDiv)) {
+      document.body.removeChild(tempDiv);
+      console.log('📄 Elemento temporal removido del DOM después del error');
+    }
+    
+    alert('Error al generar el PDF. Por favor, inténtalo de nuevo o usa la previsualización primero. Revisa la consola para más detalles.');
   }
 }
 
@@ -427,6 +558,9 @@ Servicios:
 ${cotizacion.servicios?.map(s => `- ${s.nombre}: ${s.detalle}`).join('\n') || 'No hay servicios'}
 
 Notas: ${cotizacion.notas || 'Sin notas adicionales'}
+
+DATOS COMPLETOS PARA DEBUG:
+${JSON.stringify(cotizacion, null, 2)}
   `;
   
   alert(detalles);
@@ -435,10 +569,59 @@ Notas: ${cotizacion.notas || 'Sin notas adicionales'}
 // Función para previsualizar cotización
 function previsualizarCotizacion(cotizacionId) {
   console.log('👁️ Previsualizando cotización:', cotizacionId);
+  
+  // Buscar la cotización en el array local
+  const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
+  if (!cotizacion) {
+    alert('Cotización no encontrada');
+    return;
+  }
+  
+  // Guardar datos en sessionStorage para la previsualización
+  try {
+    sessionStorage.setItem('cotizacion_temp', JSON.stringify(cotizacion));
+    console.log('💾 Datos guardados en sessionStorage para previsualización');
+  } catch (error) {
+    console.error('❌ Error al guardar datos en sessionStorage:', error);
+  }
+  
+  // Redirigir a la página de previsualización
   window.location.href = `preview.html?id=${cotizacionId}`;
+}
+
+// Función alternativa para generar PDF usando el mismo enfoque que la previsualización
+async function generarPDFAlternativo(cotizacionId) {
+  try {
+    console.log('📄 Generando PDF alternativo para cotización:', cotizacionId);
+    
+    const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
+    if (!cotizacion) {
+      alert('Cotización no encontrada');
+      return;
+    }
+    
+    // Verificar que todos los datos necesarios estén presentes
+    if (!cotizacion.nombre || !cotizacion.email || !cotizacion.servicios) {
+      console.error('❌ Datos incompletos en la cotización:', cotizacion);
+      alert('La cotización tiene datos incompletos. Por favor, previsualiza primero para verificar los datos.');
+      return;
+    }
+    
+    // Guardar datos en sessionStorage como lo hace la previsualización
+    sessionStorage.setItem('cotizacion_temp', JSON.stringify(cotizacion));
+    console.log('💾 Datos guardados en sessionStorage para PDF alternativo');
+    
+    // Redirigir a la página de previsualización con parámetro para generar PDF automáticamente
+    window.location.href = `preview.html?id=${cotizacionId}&pdf=true`;
+    
+  } catch (error) {
+    console.error('❌ Error en método alternativo:', error);
+    alert('Error al generar el PDF. Por favor, usa la previsualización.');
+  }
 }
 
 // Hacer funciones disponibles globalmente
 window.generarPDF = generarPDF;
+window.generarPDFAlternativo = generarPDFAlternativo;
 window.verDetalles = verDetalles;
 window.previsualizarCotizacion = previsualizarCotizacion; 

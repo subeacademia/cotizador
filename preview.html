@@ -225,7 +225,7 @@
         <button class="btn btn-success" onclick="imprimir()">
           🖨️ Imprimir Cotización
         </button>
-        <button class="btn btn-secondary" onclick="generarPDF()">
+        <button class="btn btn-secondary" onclick="generarPDF(event)">
           📄 Descargar PDF
         </button>
         <a href="admin.html" class="btn btn-secondary">
@@ -252,6 +252,7 @@
       // Obtener datos de la URL
       const urlParams = new URLSearchParams(window.location.search);
       cotizacionId = urlParams.get('id');
+      const generarPDFAuto = urlParams.get('pdf') === 'true';
       
       if (!cotizacionId) {
         mostrarError('No se proporcionó ID de cotización');
@@ -260,6 +261,18 @@
       
       // Cargar cotización
       await cargarCotizacion();
+      
+      // Si se debe generar PDF automáticamente
+      if (generarPDFAuto) {
+        console.log('📄 Generando PDF automáticamente...');
+        // Ocultar elementos de la interfaz para el PDF automático
+        document.querySelector('.header').style.display = 'none';
+        document.querySelector('.actions').style.display = 'none';
+        
+        setTimeout(() => {
+          generarPDF(null);
+        }, 3000); // Esperar 3 segundos para que todo se cargue completamente
+      }
     }
     
     // Cargar cotización desde localStorage o sessionStorage
@@ -366,11 +379,14 @@
     }
     
     // Funciones globales para los botones
-    window.generarPDF = async function() {
+    window.generarPDF = async function(event) {
       try {
-        const btn = event.target;
-        btn.disabled = true;
-        btn.textContent = '⏳ Generando PDF...';
+        let btn = null;
+        if (event && event.target) {
+          btn = event.target;
+          btn.disabled = true;
+          btn.textContent = '⏳ Generando PDF...';
+        }
         
         console.log('📄 Iniciando generación de PDF...');
         console.log('📄 Datos disponibles:', window.cotizacionData);
@@ -414,10 +430,21 @@
         // Limpiar datos temporales
         sessionStorage.removeItem('cotizacion_temp');
         
-        // Redirigir al admin
-        setTimeout(() => {
-          window.location.href = 'admin.html';
-        }, 2000);
+        // Verificar si se generó automáticamente
+        const urlParams = new URLSearchParams(window.location.search);
+        const generarPDFAuto = urlParams.get('pdf') === 'true';
+        
+        if (generarPDFAuto) {
+          // Si se generó automáticamente, cerrar la ventana
+          setTimeout(() => {
+            window.close();
+          }, 1000);
+        } else {
+          // Si se generó manualmente, redirigir al admin
+          setTimeout(() => {
+            window.location.href = 'admin.html';
+          }, 2000);
+        }
         
       } catch (error) {
         console.error('❌ Error al generar PDF:', error);

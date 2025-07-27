@@ -9,7 +9,7 @@ export function renderInvoice({nombre, email, rut, empresa, moneda, codigo, fech
   
   return `
   <div class="pdf-header">
-    <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" style="height:80px;">
+    <img src="./assets/logo-blanco.png" alt="Logo SUBE IA TECH" style="height:80px;">
     <h2 style="font-size:2.2rem;color:#23263A;font-weight:bold;">Cotización de Servicios</h2>
     <div class="info-empresa" style="color:#23263A;font-weight:bold;">
       <strong>Sube IA Tech Ltda.</strong><br>
@@ -80,7 +80,7 @@ export function renderInvoice({nombre, email, rut, empresa, moneda, codigo, fech
   </div>
   <div class="footer" style="color:#23263A;">
     <div style="font-weight:bold;">Sube IA Tech Ltda. &mdash; contacto@subeia.tech &mdash; Fco. Mansilla 1007, Castro, Chile</div>
-    <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" style="height:48px;">
+    <img src="./assets/logo-blanco.png" alt="Logo SUBE IA TECH" style="height:48px;">
   </div>
   `;
 } 
