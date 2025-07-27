@@ -33,28 +33,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Configurar event listeners
 function setupEventListeners() {
-  refreshBtn.addEventListener('click', cargarCotizaciones);
-  filterEstado.addEventListener('change', filtrarCotizaciones);
-  modalCancel.addEventListener('click', cerrarModal);
-  modalClose.addEventListener('click', cerrarModal);
-  modalConfirm.addEventListener('click', ejecutarAccionConfirmada);
+  if (refreshBtn) refreshBtn.addEventListener('click', cargarCotizaciones);
+  if (filterEstado) filterEstado.addEventListener('change', filtrarCotizaciones);
+  if (modalCancel) modalCancel.addEventListener('click', cerrarModal);
+  if (modalClose) modalClose.addEventListener('click', cerrarModal);
+  if (modalConfirm) modalConfirm.addEventListener('click', ejecutarAccionConfirmada);
   
   // Cerrar modal al hacer clic fuera
-  confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) {
-      cerrarModal();
-    }
-  });
+  if (confirmModal) {
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) {
+        cerrarModal();
+      }
+    });
+  }
 }
 
 // Cargar cotizaciones desde Firestore
 async function cargarCotizaciones() {
   try {
+    console.log('🔄 Cargando cotizaciones...');
     mostrarLoading(true);
     
     const snapshot = await db.collection('cotizaciones')
       .orderBy('fecha', 'desc')
       .get();
+    
+    console.log(`📊 Snapshot obtenido: ${snapshot.size} documentos`);
+    
+    // CRÍTICO: Verificar si el snapshot está vacío
+    if (snapshot.empty) {
+      console.log('📭 No hay cotizaciones disponibles');
+      cotizaciones = [];
+      mostrarLoading(false);
+      mostrarNoData(true);
+      actualizarEstadisticas();
+      return;
+    }
     
     cotizaciones = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -62,21 +77,36 @@ async function cargarCotizaciones() {
       fecha: doc.data().fecha?.toDate() || new Date()
     }));
     
+    console.log(`✅ ${cotizaciones.length} cotizaciones cargadas`);
+    
     actualizarEstadisticas();
     renderizarTabla();
     mostrarLoading(false);
+    mostrarNoData(false);
     
   } catch (error) {
-    console.error('Error al cargar cotizaciones:', error);
+    console.error('❌ Error al cargar cotizaciones:', error);
     alert('Error al cargar las cotizaciones. Por favor, inténtalo de nuevo.');
     mostrarLoading(false);
+    mostrarNoData(true);
   }
 }
 
 // Mostrar/ocultar loading
 function mostrarLoading(mostrar) {
-  loadingElement.style.display = mostrar ? 'block' : 'none';
-  cotizacionesTbody.style.display = mostrar ? 'none' : 'table-row-group';
+  if (loadingElement) {
+    loadingElement.style.display = mostrar ? 'block' : 'none';
+  }
+  if (cotizacionesTbody) {
+    cotizacionesTbody.style.display = mostrar ? 'none' : 'table-row-group';
+  }
+}
+
+// Mostrar/ocultar mensaje de no datos
+function mostrarNoData(mostrar) {
+  if (noDataElement) {
+    noDataElement.style.display = mostrar ? 'block' : 'none';
+  }
 }
 
 // Actualizar estadísticas
@@ -86,23 +116,28 @@ function actualizarEstadisticas() {
   const aceptadas = cotizaciones.filter(c => c.estado === 'Aceptada').length;
   const contratadas = cotizaciones.filter(c => c.estado === 'Contratada').length;
   
-  totalCotizaciones.textContent = total;
-  cotizacionesEmitidas.textContent = emitidas;
-  cotizacionesAceptadas.textContent = aceptadas;
-  cotizacionesContratadas.textContent = contratadas;
+  if (totalCotizaciones) totalCotizaciones.textContent = total;
+  if (cotizacionesEmitidas) cotizacionesEmitidas.textContent = emitidas;
+  if (cotizacionesAceptadas) cotizacionesAceptadas.textContent = aceptadas;
+  if (cotizacionesContratadas) cotizacionesContratadas.textContent = contratadas;
 }
 
 // Renderizar tabla de cotizaciones
 function renderizarTabla() {
   const cotizacionesFiltradas = filtrarCotizaciones();
   
+  if (!cotizacionesTbody) {
+    console.error('❌ Elemento cotizaciones-tbody no encontrado');
+    return;
+  }
+  
   if (cotizacionesFiltradas.length === 0) {
-    noDataElement.style.display = 'block';
+    mostrarNoData(true);
     cotizacionesTbody.innerHTML = '';
     return;
   }
   
-  noDataElement.style.display = 'none';
+  mostrarNoData(false);
   
   cotizacionesTbody.innerHTML = cotizacionesFiltradas.map(cotizacion => {
     const totalConDescuento = calcularTotalConDescuento(cotizacion);
@@ -110,58 +145,55 @@ function renderizarTabla() {
     
     return `
       <tr>
-        <td>
-          <strong style="font-family: var(--font-mono); color: var(--color-cyan);">
-            ${cotizacion.codigo}
-          </strong>
-        </td>
+        <td>${cotizacion.codigo || cotizacion.id}</td>
         <td>${fechaFormateada}</td>
-        <td>${cotizacion.nombre}</td>
-        <td>${cotizacion.empresa}</td>
+        <td>${cotizacion.nombre || 'N/A'}</td>
+        <td>${totalConDescuento.toLocaleString()}</td>
         <td>
-          <strong style="font-family: var(--font-mono);">
-            ${totalConDescuento.toLocaleString()} ${cotizacion.moneda}
-          </strong>
-        </td>
-        <td>
-          <span class="status-badge status-${cotizacion.estado.toLowerCase()}">
-            ${cotizacion.estado}
+          <span class="status-badge status-${cotizacion.estado?.toLowerCase() || 'emitida'}">
+            ${cotizacion.estado || 'Emitida'}
           </span>
         </td>
-        <td>
-          <div class="action-buttons">
-            ${cotizacion.estado === 'Emitida' ? `
-              <button class="btn btn-success btn-sm" onclick="marcarAceptada('${cotizacion.id}')">
-                <i class="fas fa-check"></i> Aceptar
-              </button>
-            ` : ''}
-            ${cotizacion.estado === 'Aceptada' ? `
-              <button class="btn btn-warning btn-sm" onclick="generarContrato('${cotizacion.id}')">
-                <i class="fas fa-file-contract"></i> Contrato
-              </button>
-            ` : ''}
-            <button class="btn btn-primary btn-sm" onclick="verPDF('${cotizacion.id}')">
-              <i class="fas fa-eye"></i> Ver PDF
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="eliminarCotizacion('${cotizacion.id}')">
-              <i class="fas fa-trash"></i> Eliminar
-            </button>
-          </div>
+        <td class="actions">
+          <button onclick="marcarAceptada('${cotizacion.codigo || cotizacion.id}')" 
+                  class="btn-action btn-accept" 
+                  title="Marcar como Aceptada"
+                  ${cotizacion.estado === 'Aceptada' || cotizacion.estado === 'Contratada' ? 'disabled' : ''}>
+            <i class="fas fa-check"></i>
+          </button>
+          <button onclick="generarContrato('${cotizacion.codigo || cotizacion.id}')" 
+                  class="btn-action btn-contract" 
+                  title="Generar Contrato"
+                  ${cotizacion.estado === 'Contratada' ? 'disabled' : ''}>
+            <i class="fas fa-file-contract"></i>
+          </button>
+          <button onclick="verPDF('${cotizacion.codigo || cotizacion.id}')" 
+                  class="btn-action btn-view" 
+                  title="Ver PDF">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button onclick="eliminarCotizacion('${cotizacion.codigo || cotizacion.id}')" 
+                  class="btn-action btn-delete" 
+                  title="Eliminar">
+            <i class="fas fa-trash"></i>
+          </button>
         </td>
       </tr>
     `;
   }).join('');
 }
 
-// Filtrar cotizaciones
+// Filtrar cotizaciones por estado
 function filtrarCotizaciones() {
-  const filtroEstado = filterEstado.value;
+  const estadoSeleccionado = filterEstado.value;
   
-  if (!filtroEstado) {
+  if (estadoSeleccionado === 'todos') {
     return cotizaciones;
   }
   
-  return cotizaciones.filter(cotizacion => cotizacion.estado === filtroEstado);
+  return cotizaciones.filter(cotizacion => 
+    cotizacion.estado === estadoSeleccionado
+  );
 }
 
 // Calcular total con descuento
@@ -178,10 +210,10 @@ function calcularTotalConDescuento(cotizacion) {
 
 // Formatear fecha
 function formatearFecha(fecha) {
-  if (!fecha) return '-';
+  if (!fecha) return 'N/A';
   
-  const fechaObj = fecha instanceof Date ? fecha : new Date(fecha);
-  return fechaObj.toLocaleDateString('es-CL', {
+  const date = fecha instanceof Date ? fecha : new Date(fecha);
+  return date.toLocaleDateString('es-CL', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -190,114 +222,161 @@ function formatearFecha(fecha) {
   });
 }
 
-// Funciones de acciones
+// ========================================
+// FUNCIONES DE ACCIONES
+// ========================================
+
+// Marcar cotización como aceptada
 window.marcarAceptada = async function(codigo) {
   try {
+    console.log(`✅ Marcando como aceptada: ${codigo}`);
+    
     await db.collection('cotizaciones').doc(codigo).update({
       estado: 'Aceptada',
-      fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    await cargarCotizaciones();
     mostrarNotificacion('Cotización marcada como aceptada', 'success');
+    await cargarCotizaciones();
     
   } catch (error) {
-    console.error('Error al marcar como aceptada:', error);
-    alert('Error al actualizar el estado. Por favor, inténtalo de nuevo.');
+    console.error('❌ Error al marcar como aceptada:', error);
+    mostrarNotificacion('Error al actualizar el estado', 'error');
   }
 };
 
+// Generar contrato (cambiar estado a contratada)
 window.generarContrato = async function(codigo) {
   try {
+    console.log(`📄 Generando contrato: ${codigo}`);
+    
     await db.collection('cotizaciones').doc(codigo).update({
       estado: 'Contratada',
-      fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    await cargarCotizaciones();
     mostrarNotificacion('Contrato generado exitosamente', 'success');
+    await cargarCotizaciones();
     
   } catch (error) {
-    console.error('Error al generar contrato:', error);
-    alert('Error al generar el contrato. Por favor, inténtalo de nuevo.');
+    console.error('❌ Error al generar contrato:', error);
+    mostrarNotificacion('Error al generar el contrato', 'error');
   }
 };
 
+// Ver PDF de la cotización
 window.verPDF = function(codigo) {
-  const cotizacion = cotizaciones.find(c => c.id === codigo);
-  if (!cotizacion) {
-    alert('Cotización no encontrada');
-    return;
+  try {
+    console.log(`👁️ Generando PDF para: ${codigo}`);
+    
+    const cotizacion = cotizaciones.find(c => (c.codigo || c.id) === codigo);
+    if (!cotizacion) {
+      mostrarNotificacion('Cotización no encontrada', 'error');
+      return;
+    }
+    
+    generarPDF(cotizacion);
+    
+  } catch (error) {
+    console.error('❌ Error al generar PDF:', error);
+    mostrarNotificacion('Error al generar el PDF', 'error');
   }
-  
-  generarPDF(cotizacion);
 };
 
+// Eliminar cotización
 window.eliminarCotizacion = function(codigo) {
-  const cotizacion = cotizaciones.find(c => c.id === codigo);
-  if (!cotizacion) {
-    alert('Cotización no encontrada');
-    return;
-  }
-  
   mostrarModalConfirmacion(
     'Eliminar Cotización',
-    `¿Estás seguro de que deseas eliminar la cotización ${cotizacion.codigo}? Esta acción no se puede deshacer.`,
+    `¿Estás seguro de que quieres eliminar la cotización ${codigo}? Esta acción no se puede deshacer.`,
     'eliminar',
     codigo
   );
 };
 
-// Generar PDF desde datos de Firestore
+// ========================================
+// FUNCIONES AUXILIARES
+// ========================================
+
+// Generar PDF desde datos de Firestore (SOLUCIÓN CRÍTICA)
 function generarPDF(cotizacion) {
   try {
-    // Crear elemento temporal para el PDF
+    console.log('📄 Generando PDF desde datos de Firestore...');
+    
+    // SOLUCIÓN: Crear un div temporal para el PDF
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'temp-invoice';
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '-9999px';
-    document.body.appendChild(tempDiv);
+    tempDiv.style.top = '0';
+    tempDiv.style.width = '210mm';
+    tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.padding = '20mm';
+    tempDiv.style.zIndex = '-1';
     
     // Renderizar la cotización
     tempDiv.innerHTML = renderInvoice(cotizacion);
+    document.body.appendChild(tempDiv);
     
     // Configurar opciones de html2pdf
     const opt = {
       margin: 0,
-      filename: `${cotizacion.codigo}_cotizacion.pdf`,
+      filename: `${cotizacion.codigo || cotizacion.id}_cotizacion.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Generar PDF
-    html2pdf().set(opt).from(tempDiv).save().then(() => {
-      document.body.removeChild(tempDiv);
-    });
+    // Generar y descargar PDF usando .then() como especificado
+    html2pdf().set(opt).from(tempDiv).save()
+      .then(() => {
+        console.log('✅ PDF generado exitosamente');
+        
+        // Limpiar: remover el div temporal después de generar el PDF
+        if (document.body.contains(tempDiv)) {
+          document.body.removeChild(tempDiv);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error al generar PDF:', error);
+        
+        // Limpiar en caso de error también
+        if (document.body.contains(tempDiv)) {
+          document.body.removeChild(tempDiv);
+        }
+        
+        throw error;
+      });
     
   } catch (error) {
-    console.error('Error al generar PDF:', error);
-    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    console.error('❌ Error al generar PDF:', error);
+    mostrarNotificacion('Error al generar el PDF', 'error');
   }
 }
 
 // Modal de confirmación
 function mostrarModalConfirmacion(titulo, mensaje, accion, codigo) {
+  if (!modalTitle || !modalMessage || !modalConfirm) {
+    console.error('❌ Elementos del modal no encontrados');
+    return;
+  }
+  
   modalTitle.textContent = titulo;
   modalMessage.textContent = mensaje;
   modalConfirm.textContent = accion === 'eliminar' ? 'Eliminar' : 'Confirmar';
   modalConfirm.className = accion === 'eliminar' ? 'btn btn-danger' : 'btn btn-primary';
   
   cotizacionSeleccionada = { accion, codigo };
-  confirmModal.style.display = 'block';
+  confirmModal.style.display = 'flex';
 }
 
+// Cerrar modal
 function cerrarModal() {
-  confirmModal.style.display = 'none';
+  if (confirmModal) {
+    confirmModal.style.display = 'none';
+  }
   cotizacionSeleccionada = null;
 }
 
+// Ejecutar acción confirmada
 async function ejecutarAccionConfirmada() {
   if (!cotizacionSeleccionada) return;
   
@@ -305,17 +384,19 @@ async function ejecutarAccionConfirmada() {
   
   try {
     if (accion === 'eliminar') {
+      console.log(`🗑️ Eliminando cotización: ${codigo}`);
+      
       await db.collection('cotizaciones').doc(codigo).delete();
-      await cargarCotizaciones();
+      
       mostrarNotificacion('Cotización eliminada exitosamente', 'success');
+      await cargarCotizaciones();
     }
     
     cerrarModal();
     
   } catch (error) {
-    console.error('Error al ejecutar acción:', error);
-    alert('Error al ejecutar la acción. Por favor, inténtalo de nuevo.');
-    cerrarModal();
+    console.error('❌ Error al ejecutar acción:', error);
+    mostrarNotificacion('Error al ejecutar la acción', 'error');
   }
 }
 
@@ -324,34 +405,19 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
   // Crear elemento de notificación
   const notificacion = document.createElement('div');
   notificacion.className = `notificacion notificacion-${tipo}`;
-  notificacion.innerHTML = `
-    <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'info-circle'}"></i>
-    <span>${mensaje}</span>
-  `;
+  notificacion.textContent = mensaje;
   
-  // Agregar estilos
-  notificacion.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${tipo === 'success' ? '#28a745' : '#17a2b8'};
-    color: white;
-    padding: 1rem 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-body);
-    animation: slideInRight 0.3s ease;
-  `;
-  
+  // Añadir al DOM
   document.body.appendChild(notificacion);
   
-  // Remover después de 3 segundos
+  // Mostrar con animación
   setTimeout(() => {
-    notificacion.style.animation = 'slideOutRight 0.3s ease';
+    notificacion.classList.add('mostrar');
+  }, 100);
+  
+  // Ocultar después de 3 segundos
+  setTimeout(() => {
+    notificacion.classList.remove('mostrar');
     setTimeout(() => {
       if (document.body.contains(notificacion)) {
         document.body.removeChild(notificacion);
@@ -360,29 +426,16 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
   }, 3000);
 }
 
-// Agregar estilos de animación para notificaciones
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+// Función para cerrar sesión
+window.cerrarSesion = async function() {
+  try {
+    console.log('🚪 Cerrando sesión...');
+    
+    await firebase.auth().signOut();
+    window.location.href = 'login.html';
+    
+  } catch (error) {
+    console.error('❌ Error al cerrar sesión:', error);
+    alert('Error al cerrar sesión. Por favor, inténtalo de nuevo.');
   }
-  
-  @keyframes slideOutRight {
-    from {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-  }
-`;
-document.head.appendChild(style); 
+}; 

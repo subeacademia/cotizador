@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión | SUBE IA TECH</title>
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" class="logo">
+        <h1>Panel de Administración</h1>
+        <p>Inicia sesión para acceder al panel de administración</p>
+      </div>
+      
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="email">
+            <i class="fas fa-envelope"></i>
+            Email
+          </label>
+          <input type="email" id="email" name="email" required placeholder="tu@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">
+            <i class="fas fa-lock"></i>
+            Contraseña
+          </label>
+          <input type="password" id="password" name="password" required placeholder="••••••••">
+        </div>
+        
+        <button type="submit" class="btn-login">
+          <i class="fas fa-sign-in-alt"></i>
+          Iniciar Sesión
+        </button>
+      </form>
+      
+      <div id="error-message" class="error-message" style="display: none;"></div>
+      
+      <div class="login-footer">
+        <a href="index.html" class="back-link">
+          <i class="fas fa-arrow-left"></i>
+          Volver al Cotizador
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  
+  <!-- Script de login -->
+  <script type="module" src="js/login.js"></script>
+</body>
+</html> 

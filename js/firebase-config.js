@@ -15,4 +15,7 @@ firebase.initializeApp(firebaseConfig);
 // Obtener referencia a Firestore
 const db = firebase.firestore();
 
-export { db }; 
+// Obtener referencia a Auth
+const auth = firebase.auth();
+
+export { db, auth }; 

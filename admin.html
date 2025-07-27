@@ -10,17 +10,25 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
+<body style="display: none;">
   <div class="admin-container">
     <header class="admin-header">
       <div class="header-content">
         <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" class="logo">
         <h1>Panel de Administración</h1>
-        <nav class="admin-nav">
-          <a href="index.html" class="nav-link">
-            <i class="fas fa-arrow-left"></i> Volver al Cotizador
-          </a>
-        </nav>
+        <div class="header-actions">
+          <div id="user-info" class="user-info">
+            <!-- Información del usuario se mostrará aquí -->
+          </div>
+          <nav class="admin-nav">
+            <button onclick="cerrarSesion()" class="btn-logout">
+              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+            <a href="index.html" class="nav-link">
+              <i class="fas fa-arrow-left"></i> Volver al Cotizador
+            </a>
+          </nav>
+        </div>
       </div>
     </header>
 
@@ -131,9 +139,13 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   
   <!-- html2pdf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Guardián de autenticación -->
+  <script type="module" src="js/auth-guard.js"></script>
   
   <!-- Script de administración -->
   <script type="module" src="js/admin.js"></script>
