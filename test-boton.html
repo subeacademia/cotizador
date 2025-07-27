@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Botón - SUBE IA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #2a2a2a;
+      padding: 30px;
+      border-radius: 10px;
+    }
+    .btn {
+      background: #00B8D9;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 0;
+      width: 100%;
+      font-size: 16px;
+    }
+    .log {
+      background: #000;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 10px 0;
+    }
+    .success { color: #51cf66; }
+    .error { color: #ff6b6b; }
+    .info { color: #ffffff; }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background: #333;
+      color: white;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Test Botón - SUBE IA</h1>
+    
+    <h3>1. Test Firebase</h3>
+    <button class="btn" onclick="testFirebase()">Verificar Firebase</button>
+    <div id="firebase-log" class="log"></div>
+    
+    <h3>2. Test Login</h3>
+    <input type="email" id="email" placeholder="Email" value="admin@subeia.tech">
+    <input type="password" id="password" placeholder="Password" value="admin123">
+    <button class="btn" onclick="testLogin()">Probar Login</button>
+    <div id="login-log" class="log"></div>
+    
+    <h3>3. Test PDF Simple</h3>
+    <button class="btn" onclick="testPDF()">Generar PDF Simple</button>
+    <div id="pdf-log" class="log"></div>
+    
+    <h3>4. Test Formulario Completo</h3>
+    <button class="btn" onclick="testFormulario()">Probar Formulario</button>
+    <div id="form-log" class="log"></div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+      authDomain: "cotizador-bba5a.firebaseapp.com",
+      projectId: "cotizador-bba5a",
+      storageBucket: "cotizador-bba5a.firebasestorage.app",
+      messagingSenderId: "372617480143",
+      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+    };
+
+    let usuarioActual = null;
+
+    function log(elementId, message, type = 'info') {
+      const element = document.getElementById(elementId);
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      element.scrollTop = element.scrollHeight;
+    }
+
+    // Test 1: Firebase
+    function testFirebase() {
+      const logElement = document.getElementById('firebase-log');
+      logElement.innerHTML = '';
+      
+      log('firebase-log', 'Inicializando Firebase...', 'info');
+      
+      try {
+        firebase.initializeApp(firebaseConfig);
+        log('firebase-log', '✅ Firebase inicializado correctamente', 'success');
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        log('firebase-log', '✅ Auth y Firestore disponibles', 'success');
+        
+      } catch (error) {
+        log('firebase-log', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Test 2: Login
+    function testLogin() {
+      const logElement = document.getElementById('login-log');
+      logElement.innerHTML = '';
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      log('login-log', `Intentando login con: ${email}`, 'info');
+      
+      try {
+        const auth = firebase.auth();
+        
+        auth.signInWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            usuarioActual = userCredential.user;
+            log('login-log', `✅ Login exitoso!`, 'success');
+            log('login-log', `👤 Usuario: ${usuarioActual.email}`, 'success');
+            log('login-log', `🆔 UID: ${usuarioActual.uid}`, 'success');
+          })
+          .catch((error) => {
+            log('login-log', `❌ Error de login: ${error.message}`, 'error');
+          });
+          
+      } catch (error) {
+        log('login-log', `❌ Error general: ${error.message}`, 'error');
+      }
+    }
+
+    // Test 3: PDF
+    function testPDF() {
+      const logElement = document.getElementById('pdf-log');
+      logElement.innerHTML = '';
+      
+      log('pdf-log', 'Verificando html2pdf...', 'info');
+      
+      if (typeof html2pdf === 'undefined') {
+        log('pdf-log', '❌ html2pdf NO está disponible', 'error');
+        return;
+      }
+      
+      log('pdf-log', '✅ html2pdf disponible', 'success');
+      log('pdf-log', 'Generando PDF simple...', 'info');
+      
+      try {
+        const html = `
+          <div style="padding: 20px; font-family: Arial, sans-serif; background: white; color: black;">
+            <h1>Test PDF Simple</h1>
+            <p>Fecha: ${new Date().toLocaleDateString()}</p>
+            <p>Este es un test simple de generación de PDF.</p>
+            <p>Si puedes ver este PDF, html2pdf funciona correctamente.</p>
+          </div>
+        `;
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
+        tempDiv.style.width = '210mm';
+        tempDiv.style.backgroundColor = 'white';
+        tempDiv.style.padding = '20mm';
+        tempDiv.style.zIndex = '-1';
+        
+        document.body.appendChild(tempDiv);
+        log('pdf-log', '✅ Elemento temporal creado', 'success');
+        
+        const opt = {
+          margin: [10, 10, 10, 10],
+          filename: 'test_simple.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait' 
+          }
+        };
+        
+        html2pdf().set(opt).from(tempDiv).save()
+          .then(() => {
+            log('pdf-log', '✅ PDF simple generado exitosamente', 'success');
+            document.body.removeChild(tempDiv);
+          })
+          .catch((error) => {
+            log('pdf-log', `❌ Error: ${error.message}`, 'error');
+            if (document.body.contains(tempDiv)) {
+              document.body.removeChild(tempDiv);
+            }
+          });
+          
+      } catch (error) {
+        log('pdf-log', `❌ Error general: ${error.message}`, 'error');
+      }
+    }
+
+    // Test 4: Formulario Completo
+    function testFormulario() {
+      const logElement = document.getElementById('form-log');
+      logElement.innerHTML = '';
+      
+      log('form-log', 'Simulando formulario completo...', 'info');
+      
+      if (!usuarioActual) {
+        log('form-log', '❌ Debes hacer login primero', 'error');
+        return;
+      }
+      
+      try {
+        // Datos simulados
+        const datosCotizacion = {
+          codigo: 'SUBEIA-000001',
+          nombre: 'Cliente Test',
+          email: 'test@example.com',
+          rut: '12.345.678-9',
+          empresa: 'Empresa Test',
+          moneda: 'CLP',
+          atendido: 'Rodrigo Carrillo',
+          servicios: [{
+            nombre: 'Charlas',
+            detalle: 'Presentación sobre IA',
+            modalidad: 'Online',
+            alumnos: 10,
+            tipoCobro: 'sesion',
+            tipoCobroTexto: 'Por sesión',
+            cantidad: 2,
+            valorUnitario: 50000,
+            cantidadValor: '2 x 50,000',
+            subtotal: 100000
+          }],
+          total: 100000,
+          descuento: 10,
+          descuentoValor: 10000,
+          totalConDescuento: 90000,
+          notas: 'Test de cotización',
+          fecha: new Date().toLocaleDateString('es-CL')
+        };
+        
+        log('form-log', '✅ Datos simulados creados', 'success');
+        log('form-log', 'Guardando en Firestore...', 'info');
+        
+        // Guardar en Firestore
+        const db = firebase.firestore();
+        db.collection('cotizaciones').doc(datosCotizacion.codigo).set({
+          ...datosCotizacion,
+          fecha: new Date(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          creadoPor: usuarioActual.email
+        })
+        .then(() => {
+          log('form-log', '✅ Datos guardados en Firestore', 'success');
+          log('form-log', 'Generando PDF...', 'info');
+          
+          // Generar PDF
+          const html = `
+            <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
+              <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #00B8D9; padding-bottom: 20px;">
+                <h1 style="color: #00B8D9; margin: 0;">SUBE IA TECH</h1>
+                <h2 style="color: #333; margin: 10px 0;">Cotización de Servicios</h2>
+                <p style="color: #666; margin: 5px 0;">Fco. Mansilla 1007, Castro, Chile</p>
+                <p style="color: #666; margin: 5px 0;">RUT: 77.994.591-K | contacto@subeia.tech</p>
+              </div>
+              
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                  <div>
+                    <h3 style="color: #333; margin: 0 0 10px 0;">Datos del Cliente</h3>
+                    <p style="margin: 5px 0;"><strong>Nombre:</strong> ${datosCotizacion.nombre}</p>
+                    <p style="margin: 5px 0;"><strong>Email:</strong> ${datosCotizacion.email}</p>
+                    <p style="margin: 5px 0;"><strong>RUT:</strong> ${datosCotizacion.rut}</p>
+                    <p style="margin: 5px 0;"><strong>Empresa:</strong> ${datosCotizacion.empresa}</p>
+                  </div>
+                  <div>
+                    <h3 style="color: #333; margin: 0 0 10px 0;">Información de Cotización</h3>
+                    <p style="margin: 5px 0;"><strong>Fecha:</strong> ${datosCotizacion.fecha}</p>
+                    <p style="margin: 5px 0;"><strong>Código:</strong> ${datosCotizacion.codigo}</p>
+                    <p style="margin: 5px 0;"><strong>Moneda:</strong> ${datosCotizacion.moneda}</p>
+                    <p style="margin: 5px 0;"><strong>Atendido por:</strong> ${datosCotizacion.atendido}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 20px;">
+                <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Servicios Cotizados</h3>
+                ${datosCotizacion.servicios.map(s => `
+                  <div style="border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; background: #f9f9f9;">
+                    <h4 style="color: #00B8D9; margin: 0 0 10px 0;">${s.nombre}</h4>
+                    <p style="margin: 5px 0;"><strong>Detalle:</strong> ${s.detalle}</p>
+                    <p style="margin: 5px 0;"><strong>Modalidad:</strong> ${s.modalidad}</p>
+                    <p style="margin: 5px 0;"><strong>Alumnos:</strong> ${s.alumnos}</p>
+                    <p style="margin: 5px 0;"><strong>Tipo de cobro:</strong> ${s.tipoCobroTexto}</p>
+                    <p style="margin: 5px 0; font-weight: bold; color: #1976d2;"><strong>Subtotal:</strong> ${s.subtotal.toLocaleString()} ${datosCotizacion.moneda}</p>
+                  </div>
+                `).join('')}
+              </div>
+              
+              <div style="border-top: 2px solid #00B8D9; padding-top: 20px; margin-top: 30px;">
+                <div style="text-align: right;">
+                  <h3 style="color: #333; margin: 0;">Subtotal: ${datosCotizacion.total.toLocaleString()} ${datosCotizacion.moneda}</h3>
+                  <h4 style="color: #FF4EFF; margin: 10px 0;">Descuento (${datosCotizacion.descuento}%): -${datosCotizacion.descuentoValor.toLocaleString()} ${datosCotizacion.moneda}</h4>
+                  <h2 style="color: #00B8D9; margin: 10px 0;">Total: ${datosCotizacion.totalConDescuento.toLocaleString()} ${datosCotizacion.moneda}</h2>
+                </div>
+              </div>
+              
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+                <p><strong>Válido 15 días</strong></p>
+                <p>Condiciones de pago: 50% al aceptar, 50% contra entrega</p>
+                <p>Consultas: contacto@subeia.tech</p>
+              </div>
+            </div>
+          `;
+          
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '0';
+          tempDiv.style.width = '210mm';
+          tempDiv.style.backgroundColor = 'white';
+          tempDiv.style.padding = '20mm';
+          tempDiv.style.zIndex = '-1';
+          document.body.appendChild(tempDiv);
+          
+          const opt = {
+            margin: [10, 10, 10, 10],
+            filename: `${datosCotizacion.codigo}_cotizacion.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff'
+            },
+            jsPDF: { 
+              unit: 'mm', 
+              format: 'a4', 
+              orientation: 'portrait' 
+            }
+          };
+          
+          html2pdf().set(opt).from(tempDiv).save()
+            .then(() => {
+              document.body.removeChild(tempDiv);
+              log('form-log', `✅ PDF completo generado: ${datosCotizacion.codigo}_cotizacion.pdf`, 'success');
+            })
+            .catch((error) => {
+              if (document.body.contains(tempDiv)) {
+                document.body.removeChild(tempDiv);
+              }
+              log('form-log', `❌ Error PDF: ${error.message}`, 'error');
+            });
+            
+        })
+        .catch((error) => {
+          log('form-log', `❌ Error Firestore: ${error.message}`, 'error');
+        });
+        
+      } catch (error) {
+        log('form-log', `❌ Error general: ${error.message}`, 'error');
+      }
+    }
+
+    // Ejecutar verificación automática
+    window.onload = function() {
+      setTimeout(testFirebase, 1000);
+    };
+  </script>
+</body>
+</html> 
