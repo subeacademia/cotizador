@@ -89,8 +89,8 @@ function renderServiciosDetalle() {
     
     serviciosDetalle.appendChild(div);
     
-    // CRÍTICO: Registrar event listeners para los nuevos elementos
-    addEventListenersToDetalles(div, s.id);
+    // PUNTO CLAVE: Llamar a una función separada que se encargue de registrar los event listeners
+    addEventListenersToDetails(div, s.id);
     
     // Calcular subtotal inicial
     calcularSubtotal(s.id);
@@ -98,7 +98,7 @@ function renderServiciosDetalle() {
 }
 
 // PUNTO CLAVE: Función separada para agregar event listeners a los detalles
-function addEventListenersToDetalles(serviceDiv, serviceId) {
+function addEventListenersToDetails(serviceDiv, serviceId) {
   console.log(`🔗 Agregando event listeners para servicio: ${serviceId}`);
   
   // Configurar event listeners para el tipo de cobro
@@ -356,8 +356,22 @@ async function guardarEnFirestore(datosCotizacion) {
 function generarPDF(datosCotizacion) {
   console.log('📄 Generando PDF...');
   
+  // Verificar que html2pdf esté disponible
+  if (typeof html2pdf === 'undefined') {
+    console.error('❌ html2pdf no está disponible');
+    alert('Error: La librería de generación de PDF no está cargada. Por favor, recarga la página.');
+    return;
+  }
+  
+  // Verificar que renderInvoice esté disponible
+  if (typeof renderInvoice !== 'function') {
+    console.error('❌ renderInvoice no está disponible');
+    alert('Error: La función de renderizado no está disponible. Por favor, recarga la página.');
+    return;
+  }
+  
   try {
-    // SOLUCIÓN: Crear un div temporal para el PDF
+    // SOLUCIÓN: Crear un div temporal en memoria
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -367,10 +381,10 @@ function generarPDF(datosCotizacion) {
     tempDiv.style.padding = '20mm';
     tempDiv.style.zIndex = '-1';
     
-    // Renderizar la cotización en el div temporal
+    // Inyectar el HTML de la factura en este div
     tempDiv.innerHTML = renderInvoice(datosCotizacion);
     
-    // Añadir el div temporal al body
+    // Añadir el div temporal al body del documento
     document.body.appendChild(tempDiv);
     
     console.log('🎨 HTML renderizado en div temporal, generando PDF...');
@@ -384,12 +398,12 @@ function generarPDF(datosCotizacion) {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Generar y descargar PDF usando .then() como especificado
+    // Llamar a html2pdf().from(tempDiv).save() y usar la promesa .then()
     html2pdf().set(opt).from(tempDiv).save()
       .then(() => {
         console.log('✅ PDF generado y descargado exitosamente');
         
-        // Limpiar: remover el div temporal después de generar el PDF
+        // Eliminar el div temporal del body después de que el PDF se haya generado
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
@@ -402,12 +416,12 @@ function generarPDF(datosCotizacion) {
           document.body.removeChild(tempDiv);
         }
         
-        throw new Error('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+        alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
       });
     
   } catch (error) {
     console.error('❌ Error al generar PDF:', error);
-    throw new Error('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
   }
 }
 

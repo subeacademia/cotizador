@@ -11,8 +11,16 @@ const loginButton = document.querySelector('.btn-login');
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Inicializando página de login...');
+  
+  // Verificar si ya está logueado
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      console.log('✅ Usuario ya autenticado, redirigiendo...');
+      window.location.href = 'admin.html';
+    }
+  });
+  
   setupEventListeners();
-  checkAuthState();
 });
 
 // Configurar event listeners
@@ -22,6 +30,7 @@ function setupEventListeners() {
     return;
   }
   
+  // Escuchar el evento submit del formulario
   loginForm.addEventListener('submit', handleLogin);
   
   // Limpiar error al escribir
@@ -29,18 +38,8 @@ function setupEventListeners() {
   if (passwordInput) passwordInput.addEventListener('input', clearError);
 }
 
-// Verificar estado de autenticación
-function checkAuthState() {
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      console.log('✅ Usuario ya autenticado, redirigiendo...');
-      window.location.href = 'admin.html';
-    }
-  });
-}
-
 // Manejar el envío del formulario de login
-async function handleLogin(event) {
+function handleLogin(event) {
   event.preventDefault();
   
   console.log('🔐 Procesando login...');
@@ -63,55 +62,52 @@ async function handleLogin(event) {
   setLoadingState(true);
   clearError();
   
-  try {
-    console.log('🔥 Intentando autenticación con Firebase...');
-    
-    // Intentar autenticación usando .then() y .catch() como especificado
-    auth.signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        console.log('✅ Autenticación exitosa:', userCredential.user.email);
-        
-        // Redirigir al panel de administración
-        window.location.href = 'admin.html';
-      })
-      .catch((error) => {
-        console.error('❌ Error de autenticación:', error);
-        
-        // Manejar diferentes tipos de errores
-        let errorMessage = 'Credenciales incorrectas.';
-        
-        switch (error.code) {
-          case 'auth/user-not-found':
-            errorMessage = 'No existe una cuenta con este email.';
-            break;
-          case 'auth/wrong-password':
-            errorMessage = 'Contraseña incorrecta.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Email inválido.';
-            break;
-          case 'auth/user-disabled':
-            errorMessage = 'Esta cuenta ha sido deshabilitada.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = 'Demasiados intentos fallidos. Inténtalo más tarde.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Error de conexión. Verifica tu internet.';
-            break;
-          default:
-            errorMessage = 'Credenciales incorrectas.';
-        }
-        
-        showError(errorMessage);
-        setLoadingState(false);
-      });
-    
-  } catch (error) {
-    console.error('❌ Error inesperado:', error);
-    showError('Error inesperado. Por favor, inténtalo de nuevo.');
-    setLoadingState(false);
-  }
+  console.log('🔥 Intentando autenticación con Firebase...');
+  
+  // Llamar a auth.signInWithEmailAndPassword y manejar éxito/fracaso
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log('✅ Autenticación exitosa:', userCredential.user.email);
+      
+      // Redirigir al panel de administración en caso de éxito
+      window.location.href = 'admin.html';
+    })
+    .catch((error) => {
+      console.error('❌ Error de autenticación:', error);
+      
+      // Manejar diferentes tipos de errores con mensajes claros y específicos
+      let errorMessage = 'Credenciales incorrectas.';
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = 'No existe una cuenta con este email.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Contraseña incorrecta.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Email inválido.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'Esta cuenta ha sido deshabilitada.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Demasiados intentos fallidos. Inténtalo más tarde.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Error de conexión. Verifica tu internet.';
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Credenciales inválidas.';
+          break;
+        default:
+          errorMessage = 'Error de autenticación. Verifica tus credenciales.';
+      }
+      
+      // Mostrar mensaje de error claro y específico al usuario
+      showError(errorMessage);
+      setLoadingState(false);
+    });
 }
 
 // Validar formato de email

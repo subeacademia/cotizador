@@ -61,16 +61,22 @@ async function cargarCotizaciones() {
     
     console.log(`📊 Snapshot obtenido: ${snapshot.size} documentos`);
     
-    // CRÍTICO: Verificar si el snapshot está vacío
+    // CRÍTICO: Comprobación explícita del estado vacío
     if (snapshot.empty) {
       console.log('📭 No hay cotizaciones disponibles');
       cotizaciones = [];
+      
+      // Si es true, oculta el spinner de carga, muestra el elemento de "sin datos" y vacía el tbody
       mostrarLoading(false);
       mostrarNoData(true);
+      if (cotizacionesTbody) {
+        cotizacionesTbody.innerHTML = '';
+      }
       actualizarEstadisticas();
       return;
     }
     
+    // Si es false, procede a renderizar la tabla como lo hace actualmente
     cotizaciones = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -302,7 +308,14 @@ function generarPDF(cotizacion) {
   try {
     console.log('📄 Generando PDF desde datos de Firestore...');
     
-    // SOLUCIÓN: Crear un div temporal para el PDF
+    // Verificar que html2pdf esté disponible
+    if (typeof html2pdf === 'undefined') {
+      console.error('❌ html2pdf no está disponible');
+      alert('Error: La librería de generación de PDF no está cargada. Por favor, recarga la página.');
+      return;
+    }
+    
+    // SOLUCIÓN: Crear un div temporal en memoria
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -312,8 +325,10 @@ function generarPDF(cotizacion) {
     tempDiv.style.padding = '20mm';
     tempDiv.style.zIndex = '-1';
     
-    // Renderizar la cotización
+    // Inyectar el HTML de la factura en este div
     tempDiv.innerHTML = renderInvoice(cotizacion);
+    
+    // Añadir el div temporal al body del documento
     document.body.appendChild(tempDiv);
     
     // Configurar opciones de html2pdf
@@ -325,12 +340,12 @@ function generarPDF(cotizacion) {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Generar y descargar PDF usando .then() como especificado
+    // Llamar a html2pdf().from(tempDiv).save() y usar la promesa .then()
     html2pdf().set(opt).from(tempDiv).save()
       .then(() => {
         console.log('✅ PDF generado exitosamente');
         
-        // Limpiar: remover el div temporal después de generar el PDF
+        // Eliminar el div temporal del body después de que el PDF se haya generado
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
@@ -343,12 +358,12 @@ function generarPDF(cotizacion) {
           document.body.removeChild(tempDiv);
         }
         
-        throw error;
+        alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
       });
     
   } catch (error) {
     console.error('❌ Error al generar PDF:', error);
-    mostrarNotificacion('Error al generar el PDF', 'error');
+    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
   }
 }
 
