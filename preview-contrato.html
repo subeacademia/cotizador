@@ -368,7 +368,7 @@
            const contenidoHTML = `
              <div class="pdf-header" style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #00B8D9; padding-bottom: 20px;">
                <h1 style="font-size:2.5rem;color:#23263A;font-weight:bold;margin:0;">SUBE IA TECH</h1>
-               <h2 style="font-size:1.8rem;color:#23263A;font-weight:600;margin:10px 0;">${contratoActual.tituloContrato || 'Contrato de Servicios'}</h2>
+               <h2 style="font-size:1.8rem;color:#23263A;font-weight:600;margin:10px 0;">${contratoActual.estadoContrato === 'Firmado' ? 'Contrato de Servicios' : 'Pre-Contrato de Servicios'}</h2>
                <div class="info-empresa" style="color:#23263A;font-weight:bold;margin:10px 0;">
                  <strong>Sube IA Tech Ltda.</strong><br>
                  Fco. Mansilla 1007, Castro, Chile<br>
@@ -423,6 +423,31 @@
                  <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Términos y Condiciones</h3>
                  <div class="terminos-condiciones" style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
                    ${contratoActual.terminosCondiciones}
+                 </div>
+               </div>
+               ` : ''}
+
+               ${(contratoActual.firmaRepresentanteBase64 || contratoActual.firmaClienteBase64) ? `
+               <div class="seccion" style="margin-bottom: 25px;">
+                 <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">✍️ Firmas</h3>
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                   ${contratoActual.firmaRepresentanteBase64 ? `
+                   <div style="text-align:center;background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+                     <h4 style="margin-bottom:10px;">Representante Legal</h4>
+                     <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" style="max-width:200px;max-height:80px;border:1px solid #ccc;margin-bottom:10px;">
+                     <p><strong>${contratoActual.representanteLegal || contratoActual.atendido || 'No especificado'}</strong></p>
+                     <p style="color:#64748b;font-size:0.9em;">${contratoActual.fechaFirmaRepresentante ? new Date(contratoActual.fechaFirmaRepresentante.toDate()).toLocaleDateString('es-CL') : new Date().toLocaleDateString('es-CL')}</p>
+                   </div>
+                   ` : ''}
+                   
+                   ${contratoActual.firmaClienteBase64 ? `
+                   <div style="text-align:center;background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+                     <h4 style="margin-bottom:10px;">Cliente</h4>
+                     <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" style="max-width:200px;max-height:80px;border:1px solid #ccc;margin-bottom:10px;">
+                     <p><strong>${contratoActual.cliente?.nombre || 'No especificado'}</strong></p>
+                     <p style="color:#64748b;font-size:0.9em;">${contratoActual.fechaFirmaCliente ? new Date(contratoActual.fechaFirmaCliente.toDate()).toLocaleDateString('es-CL') : new Date().toLocaleDateString('es-CL')}</p>
+                   </div>
+                   ` : ''}
                  </div>
                </div>
                ` : ''}

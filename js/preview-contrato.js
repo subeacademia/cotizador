@@ -82,7 +82,8 @@ function renderizarPreview() {
   if (!contratoActual) return;
   
   // Actualizar información del header
-  contratoTitulo.textContent = contratoActual.tituloContrato || 'Sin título';
+  const tituloContrato = contratoActual.estadoContrato === 'Firmado' ? 'Contrato de Servicios' : 'Pre-Contrato de Servicios';
+  contratoTitulo.textContent = tituloContrato;
   contratoCodigo.textContent = contratoActual.codigoCotizacion || 'Sin código';
   
   // Generar contenido HTML del contrato
@@ -92,7 +93,7 @@ function renderizarPreview() {
         <div class="contrato-logo-icon">🤝</div>
         <div class="contrato-logo-text">SUBE IA TECH</div>
       </div>
-      <h1 class="contrato-titulo">${contratoActual.tituloContrato || 'Contrato de Servicios'}</h1>
+      <h1 class="contrato-titulo">${contratoActual.estadoContrato === 'Firmado' ? 'Contrato de Servicios' : 'Pre-Contrato de Servicios'}</h1>
       <p class="contrato-codigo">Código: ${contratoActual.codigoCotizacion || 'Sin código'}</p>
     </div>
     
@@ -553,13 +554,13 @@ function descargarPDF() {
 
            <div class="section">
              <h3 class="section-title">4. VALOR Y FORMA DE PAGO</h3>
-             <div class="total-section">
-               ${contratoActual.descuento > 0 ? `
-               <div class="subtotal">Subtotal: $${(contratoActual.total || 0).toLocaleString()}</div>
-               <div class="discount">Descuento (${contratoActual.descuento}%): -$${((contratoActual.total || 0) * contratoActual.descuento / 100).toLocaleString()}</div>
-               ` : ''}
-               <div class="total">VALOR TOTAL: $${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}</div>
-             </div>
+                            <div class="total-section">
+                 ${contratoActual.descuento > 0 ? `
+                 <div class="subtotal">Subtotal: $${(contratoActual.total || 0).toLocaleString()}</div>
+                 <div class="discount">Descuento (${contratoActual.descuento}%): -$${((contratoActual.total || 0) * contratoActual.descuento / 100).toLocaleString()}</div>
+                 ` : ''}
+                 <div class="total">VALOR TOTAL: $${contratoActual.descuento > 0 ? (contratoActual.total - (contratoActual.total * contratoActual.descuento / 100)).toLocaleString() : (contratoActual.total || 0).toLocaleString()}</div>
+               </div>
              
              <div class="terms-content" style="margin-top: 20px;">
                <strong>Condiciones de Pago:</strong><br>
@@ -634,19 +635,31 @@ function descargarPDF() {
                  <div class="signature-title">PRESTADOR DE SERVICIOS</div>
                  <div class="signature-name">Sube IA Tech Ltda.</div>
                  <div class="signature-name">Representante: ${contratoActual.atendido || 'No especificado'}</div>
-                 <div class="signature-date">Fecha: _________________</div>
-                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px;">
-                   Firma
+                 <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
+                 ${contratoActual.firmaRepresentanteBase64 ? `
+                 <div style="margin-top: 20px; text-align: center;">
+                   <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
                  </div>
+                 ` : `
+                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
+                   ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
+                 </div>
+                 `}
                </div>
                <div class="signature-box">
                  <div class="signature-title">CLIENTE</div>
                  <div class="signature-name">${contratoActual.cliente?.nombre || 'No especificado'}</div>
                  <div class="signature-name">RUT: ${contratoActual.cliente?.rut || 'No especificado'}</div>
-                 <div class="signature-date">Fecha: _________________</div>
-                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px;">
-                   Firma
+                 <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
+                 ${contratoActual.firmaClienteBase64 ? `
+                 <div style="margin-top: 20px; text-align: center;">
+                   <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
                  </div>
+                 ` : `
+                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
+                   ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
+                 </div>
+                 `}
                </div>
              </div>
            </div>
