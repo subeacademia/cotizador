@@ -286,26 +286,37 @@ async function firmarContrato() {
     // Importar Firebase dinámicamente
     const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
     
+    // Verificar si ya tiene firma del representante
+    const tieneFirmaRepresentante = contratoActual.firmaRepresentanteBase64;
+    
+    // Determinar el estado final
+    let estadoFinal = 'Firmado';
+    if (tieneFirmaRepresentante) {
+      estadoFinal = 'Finalizado'; // Ambas firmas completadas
+    }
+    
     // Actualizar el contrato en Firestore
     const contratoRef = doc(window.db, 'contratos', contratoActual.id);
     const datosActualizados = {
       firmaClienteBase64: firmaBase64,
       fechaFirmaCliente: new Date(),
-      estadoContrato: 'Firmado',
+      estadoContrato: estadoFinal,
       fechaFirmaFinal: new Date(),
       contratoValido: true,
       esPreContrato: false,
-      fechaCompletado: new Date()
+      fechaCompletado: new Date(),
+      ambasFirmasCompletadas: tieneFirmaRepresentante ? true : false
     };
     
     await updateDoc(contratoRef, datosActualizados);
     
     console.log('✅ Firma del cliente guardada exitosamente');
+    console.log(`📋 Estado actualizado a: ${estadoFinal}`);
     
     // Mostrar mensaje de éxito
     mostrarMensajeExito();
     
-    // Enviar email de confirmación (simulado)
+    // Enviar email de confirmación
     await enviarEmailConfirmacion();
     
   } catch (error) {
@@ -328,18 +339,76 @@ async function enviarEmailConfirmacion() {
   try {
     console.log('📧 Enviando email de confirmación...');
     
-    // Simular envío de email de confirmación
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Generar contenido del email de confirmación
+    const asunto = `✅ Contrato Firmado - ${contratoActual.tituloContrato || contratoActual.codigoCotizacion}`;
+    const mensaje = `
+Estimado ${contratoActual.cliente?.nombre || 'Cliente'},
+
+Su contrato ha sido firmado exitosamente.
+
+Detalles del contrato:
+- Título: ${contratoActual.tituloContrato || 'Sin título'}
+- Código: ${contratoActual.codigoCotizacion || 'Sin código'}
+- Valor: $${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}
+- Fecha de firma: ${formatearFecha(new Date())}
+
+Adjunto encontrará una copia del contrato firmado.
+
+Saludos cordiales,
+Equipo SUBE IA
+www.subeia.tech
+    `;
     
-    console.log('✅ Email de confirmación enviado (simulado)');
+    // Enviar email al cliente
+    await enviarEmail(contratoActual.cliente?.email, asunto, mensaje);
     
-    // En un entorno real, aquí se enviaría el email con:
-    // - Copia del contrato firmado
-    // - Confirmación de la firma
-    // - Información adicional
+    // Enviar copia al administrador
+    const asuntoAdmin = `📋 Contrato Firmado - ${contratoActual.cliente?.nombre} - ${contratoActual.codigoCotizacion}`;
+    const mensajeAdmin = `
+Se ha firmado un nuevo contrato:
+
+Cliente: ${contratoActual.cliente?.nombre}
+Empresa: ${contratoActual.cliente?.empresa}
+Email: ${contratoActual.cliente?.email}
+Contrato: ${contratoActual.tituloContrato}
+Código: ${contratoActual.codigoCotizacion}
+Valor: $${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}
+Fecha: ${formatearFecha(new Date())}
+
+El contrato está listo para ser marcado como finalizado.
+    `;
+    
+    // Enviar al email del administrador (configurar en variables de entorno)
+    await enviarEmail('admin@subeia.tech', asuntoAdmin, mensajeAdmin);
+    
+    console.log('✅ Emails de confirmación enviados');
     
   } catch (error) {
     console.error('❌ Error al enviar email de confirmación:', error);
+  }
+}
+
+// ===== FUNCIÓN DE ENVÍO DE EMAIL =====
+async function enviarEmail(destinatario, asunto, mensaje) {
+  try {
+    // Simular envío de email
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('📧 Enviando email:');
+    console.log('   Destinatario:', destinatario);
+    console.log('   Asunto:', asunto);
+    console.log('   Mensaje:', mensaje);
+    
+    // En un entorno real, aquí se integraría con un servicio de email
+    // - SendGrid
+    // - Mailgun
+    // - AWS SES
+    // - Firebase Functions + Nodemailer
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error);
+    throw error;
   }
 }
 

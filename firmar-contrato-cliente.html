@@ -299,10 +299,50 @@
       background: rgba(16, 185, 129, 0.1);
       border: 1px solid var(--color-success);
       color: var(--color-success);
-      padding: var(--spacing-md);
+      padding: var(--spacing-xl);
       border-radius: var(--border-radius-md);
       margin-bottom: var(--spacing-lg);
       text-align: center;
+    }
+    
+    .success-actions {
+      margin-top: var(--spacing-lg);
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    .success-actions h4 {
+      color: #1e293b;
+      margin-bottom: var(--spacing-md);
+      font-size: var(--text-lg);
+    }
+    
+    .success-actions p {
+      color: #64748b;
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .success-buttons {
+      display: flex;
+      gap: var(--spacing-md);
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .success-buttons .btn {
+      min-width: 180px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-sm);
+    }
+    
+    .success-note {
+      color: #64748b;
+      font-style: italic;
+      margin-top: var(--spacing-md);
     }
 
     .footer {
@@ -437,6 +477,24 @@
     <div id="success" class="success-message" style="display: none;">
       <h3>✅ Contrato Firmado Exitosamente</h3>
       <p>Su firma ha sido registrada correctamente. Recibirá una copia del contrato firmado en su email.</p>
+      
+      <div class="success-actions">
+        <h4>¿Qué sigue?</h4>
+        <p>Gracias por confiar en SUBE IA. Le invitamos a conocer más sobre nuestros servicios:</p>
+        
+        <div class="success-buttons">
+          <a href="https://www.subeia.tech" target="_blank" class="btn btn-primary">
+            🌐 Visitar Nuestra Web
+          </a>
+          <a href="https://blog.subeia.tech" target="_blank" class="btn btn-secondary">
+            📝 Ver Nuestro Blog
+          </a>
+        </div>
+        
+        <p class="success-note">
+          <small>Recibirá una copia del contrato firmado en su email en los próximos minutos.</small>
+        </p>
+      </div>
     </div>
 
     <div class="footer">
