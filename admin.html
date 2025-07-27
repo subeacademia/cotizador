@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración | SUBE IA TECH</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css?family=Poppins:700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" class="logo">
+        <h1>Panel de Administración</h1>
+        <nav class="admin-nav">
+          <a href="index.html" class="nav-link">
+            <i class="fas fa-arrow-left"></i> Volver al Cotizador
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <div class="admin-content">
+        <div class="admin-header-section">
+          <h2>Gestión de Cotizaciones</h2>
+          <div class="admin-stats">
+            <div class="stat-card">
+              <i class="fas fa-file-invoice"></i>
+              <div class="stat-info">
+                <span class="stat-number" id="total-cotizaciones">0</span>
+                <span class="stat-label">Total</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i class="fas fa-clock"></i>
+              <div class="stat-info">
+                <span class="stat-number" id="cotizaciones-emitidas">0</span>
+                <span class="stat-label">Emitidas</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i class="fas fa-check-circle"></i>
+              <div class="stat-info">
+                <span class="stat-number" id="cotizaciones-aceptadas">0</span>
+                <span class="stat-label">Aceptadas</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <i class="fas fa-file-contract"></i>
+              <div class="stat-info">
+                <span class="stat-number" id="cotizaciones-contratadas">0</span>
+                <span class="stat-label">Contratadas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <h3>Lista de Cotizaciones</h3>
+            <div class="table-actions">
+              <button id="refresh-btn" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Actualizar
+              </button>
+              <select id="filter-estado" class="filter-select">
+                <option value="">Todos los estados</option>
+                <option value="Emitida">Emitidas</option>
+                <option value="Aceptada">Aceptadas</option>
+                <option value="Contratada">Contratadas</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="table-wrapper">
+            <table id="cotizaciones-table" class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Empresa</th>
+                  <th>Total con Descuento</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="cotizaciones-tbody">
+                <!-- Las cotizaciones se cargarán dinámicamente aquí -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Cargando cotizaciones...</span>
+          </div>
+          
+          <div id="no-data" class="no-data" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <span>No hay cotizaciones disponibles</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div id="confirm-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmar acción</h3>
+        <button class="modal-close" id="modal-close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-message">¿Estás seguro de que deseas realizar esta acción?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+        <button class="btn btn-danger" id="modal-confirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Script de administración -->
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html> 
