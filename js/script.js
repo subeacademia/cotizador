@@ -470,20 +470,36 @@ async function guardarEnFirestore(datos) {
 function recopilarDatosFormulario() {
   console.log('📝 Iniciando recopilación de datos del formulario...');
   
+  // ===== VALIDACIONES CRÍTICAS AL INICIO =====
+  
+  // Validar campos obligatorios del cliente
   const nombre = document.getElementById('nombre').value.trim();
+  const atendido = document.getElementById('atendedor').value;
+  
+  if (!nombre) {
+    alert('El nombre del cliente es obligatorio');
+    return null;
+  }
+  
+  if (!atendido) {
+    alert('El campo "Atendido por" es obligatorio');
+    return null;
+  }
+  
+  // Obtener resto de datos básicos
   const email = document.getElementById('email-cliente').value.trim();
   const rut = document.getElementById('rut').value.trim();
   const empresa = document.getElementById('empresa').value.trim();
   const moneda = document.getElementById('moneda').value;
   const descuento = parseFloat(document.getElementById('descuento').value || '0');
-  const atendido = document.getElementById('atendedor').value;
   const notas = document.getElementById('notas').value.trim();
 
   console.log('📋 Datos básicos:', { nombre, email, rut, empresa, moneda, descuento, atendido });
 
-  // Validar campos requeridos
-  if (!nombre || !email || !rut || !empresa || !atendido) {
-    throw new Error('Por favor, completa todos los campos requeridos.');
+  // Validar campos requeridos adicionales
+  if (!email || !rut || !empresa) {
+    alert('Por favor, completa todos los campos requeridos (email, RUT, empresa).');
+    return null;
   }
 
   // Recopilar servicios
@@ -491,7 +507,8 @@ function recopilarDatosFormulario() {
   console.log(`🔍 Servicios seleccionados: ${checkboxes.length}`);
   
   if (checkboxes.length === 0) {
-    throw new Error('Por favor, selecciona al menos un servicio.');
+    alert('Por favor, selecciona al menos un servicio.');
+    return null;
   }
 
   const servicios = [];
@@ -508,7 +525,8 @@ function recopilarDatosFormulario() {
     console.log(`📊 Datos del servicio:`, { detalle, modalidad, alumnos, tipoCobro });
 
     if (!detalle || !modalidad || alumnos <= 0 || !tipoCobro) {
-      throw new Error(`Por favor, completa todos los datos del servicio: ${checkbox.value}`);
+      alert(`Por favor, completa todos los datos del servicio: ${checkbox.value}`);
+      return null;
     }
 
     let cantidad = 0;
@@ -537,7 +555,8 @@ function recopilarDatosFormulario() {
     console.log(`💰 Cálculos del servicio:`, { cantidad, valorUnitario, subtotal, tipoCobroTexto });
 
     if (subtotal <= 0) {
-      throw new Error(`Por favor, ingresa un valor válido para el servicio: ${checkbox.value}`);
+      alert(`Por favor, ingresa un valor válido para el servicio: ${checkbox.value}`);
+      return null;
     }
 
     servicios.push({
@@ -561,6 +580,12 @@ function recopilarDatosFormulario() {
   const totalConDescuento = total - descuentoValor;
 
   console.log(`💵 Totales calculados:`, { total, descuento, descuentoValor, totalConDescuento });
+
+  // ===== VALIDACIÓN CRÍTICA DEL TOTAL =====
+  if (total <= 0) {
+    alert('La cotización debe tener un valor mayor a cero. Por favor, verifica los precios de los servicios.');
+    return null;
+  }
 
   // Crear objeto de datos
   const datosCotizacion = {
@@ -630,6 +655,12 @@ async function guardarYGenerarCotizacion(event) {
     console.log('📝 Recopilando datos del formulario...');
     const datos = recopilarDatosFormulario();
     console.log('✅ Datos recopilados:', datos);
+    
+    // Verificar si la recopilación fue exitosa
+    if (!datos) {
+      console.log('❌ Recopilación de datos falló, deteniendo proceso');
+      return;
+    }
 
     // Guardar en Firestore
     console.log('💾 Guardando en Firestore...');

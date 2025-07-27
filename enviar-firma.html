@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enviar Firma - SUBE IA</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .enviar-firma-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+    }
+    
+    .contrato-resumen {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-xl);
+      border-left: 4px solid var(--color-primary);
+    }
+    
+    .enviar-firma-form {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .form-group {
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: var(--spacing-md);
+      border: 2px solid rgba(0, 212, 255, 0.2);
+      border-radius: var(--border-radius-md);
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      font-size: var(--text-sm);
+      transition: all var(--transition-normal);
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .link-generado {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid var(--color-success);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      display: none;
+    }
+    
+    .link-generado h4 {
+      color: var(--color-success);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .link-input {
+      display: flex;
+      gap: var(--spacing-sm);
+      align-items: center;
+    }
+    
+    .link-input input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+    }
+    
+    .btn-copy {
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      font-size: var(--text-xs);
+      transition: all var(--transition-normal);
+    }
+    
+    .btn-copy:hover {
+      background: var(--color-primary-dark);
+    }
+    
+    .enviar-acciones {
+      display: flex;
+      gap: var(--spacing-md);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn-success {
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      padding: var(--spacing-md) var(--spacing-xl);
+      border-radius: var(--border-radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+    }
+    
+    .btn-success:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(0, 255, 240, 0.25);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-primary);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      padding: var(--spacing-md) var(--spacing-xl);
+      border-radius: var(--border-radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: var(--color-primary);
+    }
+    
+    .detalle-seccion {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      border-left: 3px solid var(--color-primary);
+    }
+    
+    .detalle-seccion h4 {
+      color: var(--color-primary);
+      margin-bottom: var(--spacing-sm);
+      font-size: var(--text-lg);
+      font-weight: 600;
+    }
+    
+    .detalle-seccion p {
+      margin: var(--spacing-xs) 0;
+      color: var(--color-text-secondary);
+    }
+    
+    .detalle-seccion strong {
+      color: var(--color-text-primary);
+    }
+    
+    .estado-badge {
+      display: inline-block;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--border-radius-sm);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .estado-badge.estado-pendiente-de-firma {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .loading-enviar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-2xl);
+      color: var(--color-text-secondary);
+    }
+    
+    .error-enviar {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-lg);
+    }
+  </style>
+</head>
+<body style="display: none;">
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <h1>📤 Enviar Firma</h1>
+        <div class="header-actions">
+          <h2>SUBE IA TECH</h2>
+          <a href="contratos.html" class="btn btn-primary">Volver a Contratos</a>
+          <a href="admin.html" class="btn btn-secondary">Panel Admin</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <main class="admin-main">
+      <div class="enviar-firma-container">
+        <div id="loading-enviar" class="loading-enviar">
+          <div>Cargando contrato...</div>
+        </div>
+        
+        <div id="error-enviar" class="error-enviar" style="display: none;">
+          Error al cargar el contrato. Por favor, verifica que el enlace sea correcto.
+        </div>
+        
+        <div id="contenido-enviar" style="display: none;">
+          <div class="contrato-resumen">
+            <h2>📋 Resumen del Contrato</h2>
+            <div id="resumen-contrato">
+              <!-- El contenido se llenará dinámicamente -->
+            </div>
+          </div>
+          
+          <div class="enviar-firma-form">
+            <h3>📤 Enviar Link de Firma al Cliente</h3>
+            
+            <div class="form-group">
+              <label for="email-cliente">Email del Cliente:</label>
+              <input type="email" id="email-cliente" placeholder="email@ejemplo.com" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="asunto-email">Asunto del Email:</label>
+              <input type="text" id="asunto-email" placeholder="Firma de Contrato - SUBE IA" value="Firma de Contrato - SUBE IA">
+            </div>
+            
+            <div class="form-group">
+              <label for="mensaje-email">Mensaje Personalizado:</label>
+              <textarea id="mensaje-email" placeholder="Estimado cliente, adjunto encontrará el link para firmar su contrato...">Estimado cliente,
+
+Adjunto encontrará el link para firmar su contrato de manera digital y segura.
+
+Por favor, haga clic en el enlace de abajo para acceder al sistema de firma:
+
+[LINK DE FIRMA]
+
+Una vez completada la firma, recibirá una copia del contrato firmado en su email.
+
+Saludos cordiales,
+Equipo SUBE IA</textarea>
+            </div>
+            
+            <div class="link-generado" id="link-generado">
+              <h4>🔗 Link de Firma Generado</h4>
+              <div class="link-input">
+                <input type="text" id="link-firma" readonly>
+                <button class="btn-copy" onclick="copiarLink()">📋 Copiar</button>
+              </div>
+              <p style="margin-top: var(--spacing-sm); font-size: var(--text-xs); color: var(--color-text-secondary);">
+                Este link es único y seguro para este contrato específico.
+              </p>
+            </div>
+            
+            <div class="enviar-acciones">
+              <button onclick="generarLinkFirma()" class="btn btn-primary">🔗 Generar Link de Firma</button>
+              <button onclick="enviarEmailFirma()" class="btn btn-success" id="btn-enviar-email" disabled>📧 Enviar Email</button>
+              <button onclick="volverContratos()" class="btn btn-secondary">↩️ Volver a Contratos</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    // Importar Firebase usando módulos ES6
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+      authDomain: "cotizador-bba5a.firebaseapp.com",
+      projectId: "cotizador-bba5a",
+      storageBucket: "cotizador-bba5a.firebasestorage.app",
+      messagingSenderId: "372617480143",
+      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+    };
+    
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // Hacer disponibles globalmente
+    window.auth = auth;
+    window.db = db;
+    
+    console.log('✅ Firebase inicializado correctamente en enviar firma');
+  </script>
+  
+  <!-- Script de enviar firma -->
+  <script type="module" src="js/enviar-firma.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+</body>
+</html> 

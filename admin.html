@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Administración - SUBE IA</title>
-  <link rel="stylesheet" href="css/admin.css">
+      <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body style="display: none;">
   <div class="admin-container">
@@ -14,6 +15,7 @@
         <div class="header-actions">
           <h2>SUBE IA TECH</h2>
           <a href="index.html" class="btn btn-primary">Crear Nueva Cotización</a>
+          <a href="contratos.html" class="btn btn-success">📋 Gestión de Contratos</a>
           <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
         </div>
       </div>
@@ -33,6 +35,10 @@
         <div class="stat-card">
           <h3>Valor Total</h3>
           <p id="valor-total">$0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Aceptado</h3>
+          <p id="total-aceptadas">$0</p>
         </div>
       </div>
 
@@ -61,6 +67,39 @@
             <option value="Ignacio Villarroel">Ignacio Villarroel</option>
           </select>
         </div>
+        <div class="filter-group">
+          <label for="filtro-estado">Filtrar por estado:</label>
+          <select id="filtro-estado">
+            <option value="todos">Todos los estados</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-mes">Filtrar por mes:</label>
+          <select id="filtro-mes">
+            <option value="todos">Todos los meses</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-ano">Filtrar por año:</label>
+          <select id="filtro-ano">
+            <option value="todos">Todos los años</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+        </div>
         <button id="aplicar-filtros" class="btn btn-filter">Aplicar Filtros</button>
       </div>
 
@@ -70,6 +109,67 @@
           <div class="loading">Cargando cotizaciones...</div>
         </div>
       </div>
+    </main>
+  </div>
+
+  <!-- Modal para cambiar estado -->
+  <div id="modal-estado" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Cambiar Estado de Cotización</h3>
+        <span class="close" onclick="cerrarModalEstado()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Cotización: <strong id="modal-cotizacion-codigo"></strong></p>
+        <div class="form-group">
+          <label for="nuevo-estado">Nuevo Estado:</label>
+          <select id="nuevo-estado" class="estado-select">
+            <!-- Se llenará dinámicamente -->
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalEstado()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="confirmarCambioEstado()" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para generar contrato -->
+  <div id="modal-contrato" class="modal" style="display: none;">
+    <div class="modal-content modal-contrato-content">
+      <div class="modal-header">
+        <h3>Generar Contrato</h3>
+        <span class="close" onclick="cerrarModalContrato()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="titulo-contrato">Título del Contrato:</label>
+          <input type="text" id="titulo-contrato" class="form-input" placeholder="Ej: Contrato de Servicios SUBE IA">
+        </div>
+        <div class="form-group">
+          <label for="fecha-inicio">Fecha de Inicio:</label>
+          <input type="date" id="fecha-inicio" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="fecha-fin">Fecha de Fin (opcional):</label>
+          <input type="date" id="fecha-fin" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="terminos-contrato">Términos y Condiciones:</label>
+          <textarea id="terminos-contrato" class="form-textarea" rows="6" placeholder="Ingrese los términos y condiciones del contrato..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="documento-contrato">Documento de Contrato (opcional):</label>
+          <input type="file" id="documento-contrato" class="form-input" accept=".pdf,.doc,.docx">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalContrato()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="guardarContrato()" class="btn btn-primary">Guardar Contrato</button>
+      </div>
+    </div>
+  </div>
     </main>
   </div>
 
@@ -108,5 +208,13 @@
   <!-- Script del admin -->
   <script type="module" src="js/admin.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
+  
+    <!-- Scripts de prueba (comentados para evitar ejecución automática) -->
+  <!-- <script src="test-admin.js"></script> -->
+  <!-- <script src="test-quick.js"></script> -->
+  <!-- <script src="test-estado.js"></script> -->
+  
+  <!-- Script de prueba final (descomenta para usar) -->
+  <!-- <script src="test-final.js"></script> -->
 </body>
 </html> 

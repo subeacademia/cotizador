@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Contratos - SUBE IA</title>
+      <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="display: none;">
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <h1>📋 Gestión de Contratos</h1>
+        <div class="header-actions">
+          <h2>SUBE IA TECH</h2>
+          <a href="admin.html" class="btn btn-primary">Volver al Admin</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <main class="admin-main">
+      <div class="stats-section">
+        <div class="stat-card">
+          <h3>Total Contratos</h3>
+          <p id="total-contratos">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Pendientes de Firma</h3>
+          <p id="contratos-pendientes">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Firmados</h3>
+          <p id="contratos-firmados">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Valor Total</h3>
+          <p id="valor-total-contratos">$0</p>
+        </div>
+      </div>
+
+      <div class="filters-section">
+        <div class="search-group">
+          <label for="buscador-contratos">🔍 Buscar contratos:</label>
+          <input type="text" id="buscador-contratos" placeholder="Buscar por código, cliente, empresa..." class="search-input">
+        </div>
+        <div class="filter-group">
+          <label for="filtro-estado-contrato">Filtrar por estado:</label>
+          <select id="filtro-estado-contrato">
+            <option value="todos">Todos los estados</option>
+            <option value="Pendiente de Firma">Pendiente de Firma</option>
+            <option value="Enviado">Enviado</option>
+            <option value="Firmado">Firmado</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-mes-contrato">Filtrar por mes:</label>
+          <select id="filtro-mes-contrato">
+            <option value="todos">Todos los meses</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-ano-contrato">Filtrar por año:</label>
+          <select id="filtro-ano-contrato">
+            <option value="todos">Todos los años</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+        </div>
+        <button id="aplicar-filtros-contratos" class="btn btn-filter">Aplicar Filtros</button>
+      </div>
+
+      <div class="cotizaciones-section">
+        <div class="section-header">
+          <h2>📋 Lista de Contratos</h2>
+          <button class="btn btn-primary" onclick="mostrarModalCrearContrato()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            Crear Contrato Directo
+          </button>
+        </div>
+        <div id="contratos-list" class="cotizaciones-list">
+          <div class="loading">Cargando contratos...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal para cambiar estado del contrato -->
+  <div id="modal-estado-contrato" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Cambiar Estado del Contrato</h3>
+        <span class="close" onclick="cerrarModalEstadoContrato()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Contrato: <strong id="modal-contrato-codigo"></strong></p>
+        <div class="form-group">
+          <label for="nuevo-estado-contrato">Nuevo Estado:</label>
+          <select id="nuevo-estado-contrato">
+            <option value="Pendiente de Firma">Pendiente de Firma</option>
+            <option value="Enviado">Enviado</option>
+            <option value="Firmado">Firmado</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalEstadoContrato()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="confirmarCambioEstadoContrato()" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para crear/editar contrato -->
+  <div id="modal-crear-contrato" class="modal" style="display: none;">
+    <div class="modal-content modal-contrato-content">
+      <div class="modal-header">
+        <h3 id="modal-contrato-titulo">Crear Contrato Directo</h3>
+        <span class="close" onclick="cerrarModalCrearContrato()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="titulo-contrato-directo">Título del Contrato:</label>
+            <input type="text" id="titulo-contrato-directo" class="form-input" placeholder="Ej: Contrato de Servicios de Consultoría">
+          </div>
+          <div class="form-group">
+            <label for="fecha-inicio-directo">Fecha de Inicio:</label>
+            <input type="date" id="fecha-inicio-directo" class="form-input">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fecha-fin-directo">Fecha de Fin (opcional):</label>
+            <input type="date" id="fecha-fin-directo" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="valor-total-directo">Valor Total del Contrato:</label>
+            <input type="number" id="valor-total-directo" class="form-input" placeholder="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="nombre-cliente-directo">Nombre del Cliente:</label>
+          <input type="text" id="nombre-cliente-directo" class="form-input" placeholder="Nombre completo del cliente">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email-cliente-directo">Email del Cliente:</label>
+            <input type="email" id="email-cliente-directo" class="form-input" placeholder="email@ejemplo.com">
+          </div>
+          <div class="form-group">
+            <label for="rut-cliente-directo">RUT del Cliente:</label>
+            <input type="text" id="rut-cliente-directo" class="form-input" placeholder="12.345.678-9">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="empresa-cliente-directo">Empresa:</label>
+          <input type="text" id="empresa-cliente-directo" class="form-input" placeholder="Nombre de la empresa">
+        </div>
+
+        <div class="form-group">
+          <label for="servicios-contrato-directo">Descripción de Servicios:</label>
+          <textarea id="servicios-contrato-directo" class="form-textarea" rows="4" placeholder="Describe los servicios que se prestarán..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="terminos-contrato-directo">Términos y Condiciones:</label>
+          <textarea id="terminos-contrato-directo" class="form-textarea" rows="6" placeholder="Ingrese los términos y condiciones del contrato..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalCrearContrato()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="guardarContratoDirecto()" class="btn btn-primary">Guardar Contrato</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalles del contrato -->
+  <div id="modal-detalles-contrato" class="modal" style="display: none;">
+    <div class="modal-content modal-detalles-content">
+      <div class="modal-header">
+        <h3>Detalles del Contrato</h3>
+        <span class="close" onclick="cerrarModalDetallesContrato()">&times;</span>
+      </div>
+      <div class="modal-body" id="detalles-contrato-content">
+        <!-- El contenido se llenará dinámicamente -->
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalDetallesContrato()" class="btn btn-secondary">Cerrar</button>
+        <button onclick="editarContratoDesdeDetalles()" class="btn btn-primary">Editar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para completar contrato -->
+  <div id="modal-completar-contrato" class="modal" style="display: none;">
+    <div class="modal-content modal-contrato-content">
+      <div class="modal-header">
+        <h3>Completar y Firmar Contrato</h3>
+        <span class="close" onclick="cerrarModalCompletarContrato()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="partes-involucradas">Partes Involucradas:</label>
+          <input type="text" id="partes-involucradas" class="form-input" placeholder="Ej: Juan Pérez - Empresa ABC">
+        </div>
+
+        <div class="form-group">
+          <label for="objeto-contrato">Objeto del Contrato:</label>
+          <textarea id="objeto-contrato" class="form-textarea" rows="6" placeholder="Describe detalladamente el objeto del contrato..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="clausulas-contrato">Cláusulas y Términos:</label>
+          <textarea id="clausulas-contrato" class="form-textarea" rows="8" placeholder="Ingrese las cláusulas y términos del contrato..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fecha-inicio-completar">Fecha de Inicio:</label>
+            <input type="date" id="fecha-inicio-completar" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="fecha-fin-completar">Fecha de Fin:</label>
+            <input type="date" id="fecha-fin-completar" class="form-input">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalCompletarContrato()" class="btn btn-secondary">Cancelar</button>
+        <button onclick="guardarContratoCompletado()" class="btn btn-success">Completar y Firmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    // Importar Firebase usando módulos ES6
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+      authDomain: "cotizador-bba5a.firebaseapp.com",
+      projectId: "cotizador-bba5a",
+      storageBucket: "cotizador-bba5a.firebasestorage.app",
+      messagingSenderId: "372617480143",
+      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+    };
+    
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // Hacer disponibles globalmente
+    window.auth = auth;
+    window.db = db;
+    
+    console.log('✅ Firebase inicializado correctamente en contratos');
+  </script>
+  
+  <!-- Script de contratos -->
+  <script type="module" src="js/contratos.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+  
+  <!-- Script de prueba para contratos (comentado para evitar ejecución automática) -->
+  <!-- <script src="test-contratos.js"></script> -->
+  
+  <!-- Script de prueba final (descomenta para usar) -->
+  <!-- <script src="test-final.js"></script> -->
+</body>
+</html> 

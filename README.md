@@ -1,193 +1,285 @@
-# Cotizador SUBE IA TECH - Sistema Completo
+# 📋 Cotizador SUBE IA - Sistema Completo de Gestión con Firmas Digitales
 
-Un sistema completo de cotizaciones con integración de Firebase Firestore y panel de administración.
+## 🚀 Características Principales
 
-## 🚀 Características
+### ✨ **Gestión de Cotizaciones**
+- Creación de cotizaciones profesionales con múltiples servicios
+- Sistema de descuentos automático
+- Generación de PDFs con diseño profesional
+- Estados de cotización: Emitida, Contestada, En Negociación, Aceptada, Rechazada, etc.
+- Búsqueda y filtrado avanzado en tiempo real
+- Panel de administración completo
+- **Sistema de notificaciones en tiempo real** 🆕
 
-### ✨ Funcionalidades Principales
-- **Generación de cotizaciones** con múltiples servicios y modalidades
-- **Integración con Firebase Firestore** para almacenamiento persistente
-- **Panel de administración** completo con gestión de cotizaciones
-- **Generación de PDFs** profesionales
-- **Sistema de estados** (Emitida → Aceptada → Contratada)
-- **Interfaz responsive** y moderna
+### 📄 **Gestión de Contratos Avanzada** 🆕
+- **Creación automática de pre-contratos** desde cotizaciones aceptadas
+- **Creación directa de contratos** sin cotización previa
+- **Sistema completo de estados**: Pendiente de Completar → Pendiente de Firma → Firmado → Finalizado
+- **CRUD completo** para contratos (Crear, Leer, Actualizar, Eliminar)
+- **Modal de completado** para añadir datos faltantes del contrato
+- Modales interactivos para detalles y edición
+- Búsqueda y filtrado avanzado
 
-### 📊 Panel de Administración
-- **Dashboard con estadísticas** en tiempo real
-- **Tabla de cotizaciones** con filtros por estado
-- **Acciones CRUD** completas:
-  - Marcar como aceptada
-  - Generar contrato
-  - Ver PDF
-  - Eliminar cotización
-- **Notificaciones** en tiempo real
-- **Modal de confirmación** para acciones críticas
+### ✍️ **Sistema de Firmas Digitales Propio** 🆕
+- **Página dedicada de firma** (`firmar-contrato.html`)
+- **Librería SignaturePad** para captura de firmas
+- **Firma digital nativa** sin dependencias externas
+- **Almacenamiento de firma en Base64** en Firestore
+- **Validación de firma** antes de completar el proceso
+- **Interfaz responsive** para dispositivos móviles y táctiles
 
-## 🛠️ Configuración
+### 🎨 **Experiencia de Usuario Mejorada**
+- Diseño moderno con efectos glassmorphism
+- Interfaz responsive para todos los dispositivos
+- **Sistema de notificaciones toast** sin efectos molestos
+- Navegación intuitiva entre módulos
+- **Feedback visual inmediato** para todas las acciones
 
-### 1. Configurar Firebase
+## 🔧 **Funcionalidades Técnicas**
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Crea un nuevo proyecto o usa uno existente
-3. Habilita **Firestore Database**
-4. Ve a **Project Settings** → **General** → **Your apps**
-5. Crea una nueva app web
-6. Copia la configuración de Firebase
+### **Flujo Automatizado Cotización → Pre-Contrato → Firma**
+1. Al cambiar el estado de una cotización a "Aceptada"
+2. Se crea automáticamente un **pre-contrato** en la colección `contratos`
+3. Se copian todos los datos relevantes de la cotización
+4. Se establece el estado inicial como "Pendiente de Completar"
+5. Se muestra notificación de éxito
+6. El usuario puede completar el contrato con datos adicionales
+7. Al completar, se redirige automáticamente a la página de firma
+8. El cliente firma digitalmente el contrato
+9. Se actualiza el estado a "Firmado" y se guarda la firma
 
-### 2. Actualizar Configuración
+### **Sistema de Notificaciones**
+- **Notificaciones toast** en la esquina superior derecha
+- **Tipos**: Success (✅) y Error (❌)
+- **Auto-remoción** después de 5 segundos
+- **Animaciones suaves** de entrada y salida
+- **Botón de cierre manual** disponible
 
-Edita el archivo `js/firebase-config.js` y reemplaza la configuración:
+### **Gestor de Contratos Completo**
+- **Crear Pre-Contrato**: Automático desde cotizaciones aceptadas
+- **Completar Contrato**: Modal con formulario para datos adicionales
+- **Ver Detalles**: Modal con información completa del contrato
+- **Editar Contrato**: Modificación de todos los campos del contrato
+- **Cambiar Estado**: Actualización inmediata del estado del contrato
+- **Eliminar Contrato**: Eliminación con confirmación
+- **Firmar Contrato**: Redirección a página de firma digital
 
-```javascript
-const firebaseConfig = {
-  apiKey: "tu-api-key-aqui",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto-id",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "tu-app-id"
-};
-```
+### **Sistema de Estados Mejorado**
+- **Cotizaciones**: Emitida → Contestada → En Negociación → Aceptada/Rechazada
+- **Contratos**: Pendiente de Completar → Pendiente de Firma → Firmado → Finalizado
 
-### 3. Reglas de Firestore
-
-Configura las reglas de seguridad en Firestore:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /cotizaciones/{document} {
-      allow read, write: if true; // Para desarrollo
-      // allow read, write: if request.auth != null; // Para producción
-    }
-  }
-}
-```
-
-## 📁 Estructura del Proyecto
+## 📁 **Estructura del Proyecto**
 
 ```
 cotizador/
-├── index.html              # Página principal del cotizador
+├── index.html              # Formulario principal de cotizaciones
 ├── admin.html              # Panel de administración
+├── contratos.html          # Gestor de contratos
+├── firmar-contrato.html    # Página de firma digital (NUEVO)
+├── preview.html            # Previsualización de cotizaciones
 ├── css/
-│   ├── styles.css          # Estilos del cotizador
-│   └── admin.css           # Estilos del panel admin
+│   ├── admin.css           # Estilos principales (MEJORADO)
+│   ├── login.css           # Estilos de login
+│   └── styles.css          # Estilos generales
 ├── js/
-│   ├── script.js           # Lógica principal del cotizador
-│   ├── admin.js            # Lógica del panel admin
-│   └── firebase-config.js  # Configuración de Firebase
-├── templates/
-│   ├── invoice-template.js # Plantilla de cotizaciones
-│   └── contract-template.js # Plantilla de contratos (futuro)
-└── assets/
-    └── logo-blanco.png     # Logo de la empresa
+│   ├── admin.js            # Lógica de administración (MEJORADO)
+│   ├── contratos.js        # Lógica de contratos (MEJORADO)
+│   ├── firmar-contrato.js  # Lógica de firma digital (NUEVO)
+│   ├── auth-guard.js       # Protección de rutas
+│   ├── script.js           # Lógica principal
+│   └── script-new.js       # Lógica adicional
+└── templates/
+    ├── contract-template.js # Plantilla de contratos
+    └── invoice-template.js  # Plantilla de facturas
 ```
 
-## 🎯 Uso
+## 🎯 **Mejoras Implementadas**
 
-### Generar Cotización
-1. Abre `index.html` en tu navegador
-2. Completa el formulario con los datos del cliente
-3. Selecciona los servicios deseados
-4. Configura los detalles de cada servicio
-5. Haz clic en "Generar PDF" para previsualizar
-6. Haz clic en "Confirmar y emitir PDF" para guardar y generar
+### **Tarea 1: Reparación y Automatización del Flujo**
+✅ **Completada**: Sistema de notificaciones y pre-contratos
+- Función `mostrarNotificacion()` implementada
+- Función `crearPreContrato()` reemplaza la anterior
+- Notificaciones automáticas al cambiar estados
+- Creación automática de pre-contratos al aceptar cotizaciones
 
-### Panel de Administración
-1. Accede a `admin.html` o haz clic en "Panel de Administración"
-2. Visualiza todas las cotizaciones generadas
-3. Usa los filtros para encontrar cotizaciones específicas
-4. Realiza acciones sobre las cotizaciones:
-   - **Aceptar**: Cambia el estado a "Aceptada"
-   - **Contrato**: Cambia el estado a "Contratada"
-   - **Ver PDF**: Regenera el PDF de la cotización
-   - **Eliminar**: Elimina la cotización (con confirmación)
+### **Tarea 2: Gestor de Contratos Completo**
+✅ **Completada**: Sistema CRUD completo con completado
+- **Modal de completar contrato** con formulario completo
+- **Botón "Completar y Firmar"** en contratos pendientes
+- **Validación de campos obligatorios**
+- **Redirección automática** a página de firma
+- **Estados mejorados** con "Pendiente de Completar"
 
-## 🔧 Tecnologías Utilizadas
+### **Tarea 3: Sistema de Firmas Digitales Propio**
+✅ **Completada**: Sistema completo de firma digital
+- **Página `firmar-contrato.html`** con interfaz moderna
+- **Librería SignaturePad** integrada
+- **Captura de firma en Base64**
+- **Validación de firma** antes de completar
+- **Almacenamiento en Firestore** con metadatos
+- **Responsive design** para dispositivos táctiles
 
-- **HTML5** - Estructura semántica
-- **CSS3** - Estilos modernos y responsive
-- **JavaScript ES6+** - Lógica de la aplicación
-- **Firebase Firestore** - Base de datos en la nube
-- **html2pdf.js** - Generación de PDFs
-- **Font Awesome** - Iconografía
+## 🔥 **Nuevas Funcionalidades**
 
-## 📱 Responsive Design
+### **Sistema de Notificaciones Toast**
+- Notificaciones no intrusivas en tiempo real
+- Tipos de notificación: Success y Error
+- Animaciones suaves y auto-remoción
+- Diseño consistente con el tema de la aplicación
 
-La aplicación está completamente optimizada para:
-- 📱 Dispositivos móviles
-- 💻 Tablets
-- 🖥️ Escritorio
+### **Flujo de Pre-Contratos**
+- Creación automática de pre-contratos desde cotizaciones
+- Estado "Pendiente de Completar" para contratos incompletos
+- Modal de completado con campos específicos del contrato
+- Transición fluida hacia el proceso de firma
 
-## 🔒 Seguridad
+### **Página de Firma Digital**
+- Interfaz dedicada para firmar contratos
+- Canvas responsive para captura de firma
+- Validación de firma antes de completar
+- Resumen completo del contrato antes de firmar
+- Almacenamiento seguro de firma en Base64
 
-### Para Desarrollo
-- Las reglas de Firestore están abiertas para facilitar el desarrollo
+### **Modales Interactivos Mejorados**
+- Modal de completar contrato con validación
+- Modal de detalles con información organizada
+- Modal de cambio de estado con notificaciones
+- Transiciones suaves entre estados
 
-### Para Producción
-- Configura autenticación de Firebase
-- Actualiza las reglas de Firestore para restringir acceso
-- Considera implementar un sistema de usuarios
+### **Sistema de Búsqueda Avanzado**
+- Búsqueda en tiempo real en contratos
+- Filtrado por estado de contrato
+- Búsqueda por código, cliente, empresa, email, etc.
+- Resultados actualizados instantáneamente
 
-## 🚀 Despliegue
+### **Estadísticas en Tiempo Real**
+- Total de contratos
+- Contratos pendientes de completar
+- Contratos pendientes de firma
+- Contratos firmados
+- Valor total de contratos
 
-### Opción 1: Firebase Hosting (Recomendado)
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init hosting
-firebase deploy
+## 🚀 **Cómo Usar el Sistema Completo**
+
+### **1. Flujo Automatizado Completo:**
+1. Crear cotización en `index.html`
+2. Ir a `admin.html` y cambiar estado a "Aceptada"
+3. Automáticamente se crea pre-contrato en `contratos.html`
+4. Hacer clic en "Completar y Firmar" en el pre-contrato
+5. Llenar datos adicionales en el modal
+6. Se redirige automáticamente a `firmar-contrato.html`
+7. Firmar digitalmente el contrato
+8. Contrato queda marcado como "Firmado"
+
+### **2. Gestión de Contratos:**
+1. Ir a `contratos.html`
+2. Ver pre-contratos creados automáticamente
+3. Completar contratos con datos adicionales
+4. Firmar contratos digitalmente
+5. Gestionar estados y ver detalles
+
+### **3. Sistema de Firmas:**
+1. Acceder a `firmar-contrato.html?id=[ID_CONTRATO]`
+2. Revisar resumen del contrato
+3. Firmar en el canvas digital
+4. Confirmar firma y aceptar contrato
+5. Redirección automática al panel de contratos
+
+## 🛠️ **Tecnologías Utilizadas**
+
+- **Frontend**: HTML5, CSS3, JavaScript ES6+
+- **Backend**: Firebase Firestore
+- **Autenticación**: Firebase Auth
+- **PDF**: jsPDF
+- **Firma Digital**: SignaturePad.js
+- **Estilos**: CSS Grid, Flexbox, Glassmorphism
+- **Iconos**: SVG inline
+
+## 📊 **Base de Datos Mejorada**
+
+### **Colección: cotizaciones**
+```javascript
+{
+  id: "string",
+  codigo: "string",
+  nombre: "string",
+  email: "string",
+  rut: "string",
+  empresa: "string",
+  servicios: "array",
+  total: "number",
+  totalConDescuento: "number",
+  descuento: "number",
+  estado: "string",
+  fechaTimestamp: "timestamp",
+  atendido: "string",
+  notas: "string"
+}
 ```
 
-### Opción 2: Servidor Web Local
-```bash
-# Usando Python
-python -m http.server 8000
-
-# Usando Node.js
-npx serve .
-
-# Usando PHP
-php -S localhost:8000
+### **Colección: contratos (MEJORADA)**
+```javascript
+{
+  id: "string",
+  cotizacionIdOriginal: "string", // ID de cotización original
+  codigoCotizacion: "string",
+  tituloContrato: "string",
+  fechaCreacionContrato: "timestamp",
+  estadoContrato: "string", // Pendiente de Completar, Pendiente de Firma, Firmado, Finalizado
+  cliente: {
+    nombre: "string",
+    email: "string",
+    rut: "string",
+    empresa: "string"
+  },
+  servicios: "array",
+  total: "number",
+  totalConDescuento: "number",
+  descuento: "number",
+  atendido: "string",
+  fechaInicio: "date",
+  fechaFin: "date",
+  partesInvolucradas: "string", // NUEVO
+  objetoContrato: "string", // NUEVO
+  clausulas: "string", // NUEVO
+  descripcionServicios: "string",
+  terminosCondiciones: "string",
+  esPreContrato: "boolean", // NUEVO
+  fechaCompletado: "timestamp", // NUEVO
+  firmaClienteBase64: "string", // NUEVO - Firma digital
+  fechaFirma: "timestamp", // NUEVO
+  firmadoPor: "string", // NUEVO
+  esContratoDirecto: "boolean"
+}
 ```
 
-## 🔄 Flujo de Trabajo
+## 🎉 **Estado del Proyecto**
 
-1. **Cliente solicita cotización** → Se genera en el cotizador
-2. **Cotización se guarda** → Automáticamente en Firestore
-3. **Administrador revisa** → En el panel de administración
-4. **Cliente acepta** → Se marca como "Aceptada"
-5. **Se genera contrato** → Se marca como "Contratada"
+✅ **COMPLETADO**: Todas las tareas implementadas exitosamente
+- ✅ Automatización del flujo cotización → pre-contrato → firma
+- ✅ Sistema de notificaciones toast
+- ✅ Gestor de contratos completo con CRUD
+- ✅ Modal de completado de contratos
+- ✅ Sistema de firmas digitales propio
+- ✅ Página dedicada de firma con SignaturePad
+- ✅ Validación y almacenamiento de firmas
+- ✅ Mejoras de UX/UI sin efectos molestos
+- ✅ Sistema de estados funcional
+- ✅ Modales interactivos
+- ✅ Búsqueda y filtrado avanzado
 
-## 📈 Próximas Mejoras
+## 🔮 **Próximas Mejoras Sugeridas**
 
-- [ ] Sistema de autenticación de usuarios
-- [ ] Plantillas de contratos personalizables
-- [ ] Notificaciones por email
-- [ ] Dashboard con gráficos y métricas
-- [ ] Exportación a Excel
-- [ ] Integración con sistemas de pago
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
-
-## 📞 Soporte
-
-Para soporte técnico o consultas:
-- Email: contacto@subeia.tech
-- Sitio web: https://subeia.tech
+1. **Email Automático**: Notificaciones por email al cambiar estados
+2. **Firma Múltiple**: Sistema para firmas de múltiples partes
+3. **Reportes Avanzados**: Generación de reportes de ventas y contratos
+4. **Dashboard Interactivo**: Gráficos y métricas avanzadas
+5. **Multi-usuario**: Roles y permisos específicos
+6. **Historial de Cambios**: Tracking de modificaciones en contratos
+7. **Exportación de Firmas**: Descarga de contratos firmados en PDF
 
 ---
 
-**Desarrollado con ❤️ por SUBE IA TECH**
+**Desarrollado con ❤️ para SUBE IA TECH**
+
+*Sistema completo de gestión empresarial con firmas digitales nativas*

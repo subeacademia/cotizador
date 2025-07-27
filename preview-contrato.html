@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vista Previa del Contrato - SUBE IA</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+    }
+    
+    .preview-header {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-xl);
+      border-left: 4px solid var(--color-primary);
+    }
+    
+    .preview-content {
+      background: white;
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-2xl);
+      box-shadow: var(--shadow-lg);
+      color: #1e293b;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+    }
+    
+    .contrato-header {
+      text-align: center;
+      margin-bottom: var(--spacing-2xl);
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: var(--spacing-xl);
+    }
+    
+    .contrato-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .contrato-logo-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-2xl);
+    }
+    
+    .contrato-logo-text {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .contrato-titulo {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .contrato-codigo {
+      font-size: var(--text-lg);
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .contrato-seccion {
+      margin-bottom: var(--spacing-xl);
+    }
+    
+    .contrato-seccion h3 {
+      color: var(--color-primary);
+      font-size: var(--text-xl);
+      font-weight: 600;
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: var(--spacing-sm);
+    }
+    
+    .contrato-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .info-item {
+      background: #f8fafc;
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      border-left: 3px solid var(--color-primary);
+    }
+    
+    .info-item strong {
+      color: #1e293b;
+      display: block;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .info-item span {
+      color: #64748b;
+    }
+    
+    .contrato-detalle {
+      background: #f8fafc;
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .contrato-detalle h4 {
+      color: #1e293b;
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .contrato-detalle p {
+      color: #64748b;
+      margin-bottom: var(--spacing-sm);
+      white-space: pre-line;
+    }
+    
+    .contrato-firmas {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--spacing-lg);
+      margin-top: var(--spacing-2xl);
+      padding-top: var(--spacing-xl);
+      border-top: 2px solid #e2e8f0;
+    }
+    
+    .firma-item {
+      text-align: center;
+      padding: var(--spacing-lg);
+      background: #f8fafc;
+      border-radius: var(--border-radius-md);
+    }
+    
+    .firma-item h4 {
+      color: #1e293b;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .firma-imagen {
+      max-width: 200px;
+      max-height: 100px;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--border-radius-sm);
+      margin: 0 auto var(--spacing-md);
+    }
+    
+    .firma-fecha {
+      color: #64748b;
+      font-size: var(--text-sm);
+    }
+    
+    .preview-actions {
+      display: flex;
+      gap: var(--spacing-md);
+      justify-content: center;
+      margin-top: var(--spacing-xl);
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: var(--spacing-md) var(--spacing-xl);
+      border-radius: var(--border-radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      border: none;
+      font-size: var(--text-sm);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.25);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-primary);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: var(--color-primary);
+    }
+    
+    .loading-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-2xl);
+      color: var(--color-text-secondary);
+    }
+    
+    .error-preview {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-lg);
+      text-align: center;
+    }
+    
+    @media print {
+      .preview-actions,
+      .admin-header {
+        display: none !important;
+      }
+      
+      .preview-container {
+        padding: 0;
+      }
+      
+      .preview-content {
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .preview-container {
+        padding: var(--spacing-md);
+      }
+      
+      .preview-content {
+        padding: var(--spacing-lg);
+      }
+      
+      .contrato-info {
+        grid-template-columns: 1fr;
+      }
+      
+      .preview-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body style="display: none;">
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <h1>📄 Vista Previa del Contrato</h1>
+        <div class="header-actions">
+          <h2>SUBE IA TECH</h2>
+          <a href="contratos.html" class="btn btn-primary">Volver a Contratos</a>
+          <a href="admin.html" class="btn btn-secondary">Panel Admin</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <main class="admin-main">
+      <div class="preview-container">
+        <div id="loading-preview" class="loading-preview">
+          <div>Cargando contrato...</div>
+        </div>
+        
+        <div id="error-preview" class="error-preview" style="display: none;">
+          Error al cargar el contrato. Por favor, verifica que el enlace sea correcto.
+        </div>
+        
+        <div id="contenido-preview" style="display: none;">
+          <div class="preview-header">
+            <h2>📋 Contrato: <span id="contrato-titulo">Cargando...</span></h2>
+            <p>Código: <span id="contrato-codigo">Cargando...</span></p>
+          </div>
+          
+          <div class="preview-content" id="preview-content">
+            <!-- El contenido del contrato se llenará dinámicamente -->
+          </div>
+          
+          <div class="preview-actions">
+            <button onclick="imprimirContrato()" class="btn btn-primary">🖨️ Imprimir Contrato</button>
+            <button onclick="descargarPDF()" class="btn btn-primary">📥 Descargar PDF</button>
+            <button onclick="volverContratos()" class="btn btn-secondary">↩️ Volver a Contratos</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    // Importar Firebase usando módulos ES6
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+      authDomain: "cotizador-bba5a.firebaseapp.com",
+      projectId: "cotizador-bba5a",
+      storageBucket: "cotizador-bba5a.firebasestorage.app",
+      messagingSenderId: "372617480143",
+      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+    };
+    
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // Hacer disponibles globalmente
+    window.auth = auth;
+    window.db = db;
+    
+    console.log('✅ Firebase inicializado correctamente en preview contrato');
+  </script>
+  
+  <!-- Script de preview contrato -->
+  <script type="module" src="js/preview-contrato.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+</body>
+</html> 
