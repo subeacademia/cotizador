@@ -307,46 +307,177 @@
           </div>
           
           <div class="preview-actions">
-            <button onclick="imprimirContrato()" class="btn btn-primary">🖨️ Imprimir Contrato</button>
-            <button onclick="descargarPDF()" class="btn btn-primary">📥 Descargar PDF</button>
-            <button onclick="volverContratos()" class="btn btn-secondary">↩️ Volver a Contratos</button>
+            <button onclick="window.imprimirContrato()" class="btn btn-primary">🖨️ Imprimir Contrato</button>
+            <button onclick="window.descargarPDF()" class="btn btn-primary">📥 Descargar PDF</button>
+            <button onclick="window.volverContratos()" class="btn btn-secondary">↩️ Volver a Contratos</button>
           </div>
         </div>
       </div>
     </main>
   </div>
 
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
   <!-- Firebase -->
-  <script type="module">
-    // Importar Firebase usando módulos ES6
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    
-    // Configuración de Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
-      authDomain: "cotizador-bba5a.firebaseapp.com",
-      projectId: "cotizador-bba5a",
-      storageBucket: "cotizador-bba5a.firebasestorage.app",
-      messagingSenderId: "372617480143",
-      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
-    };
-    
-    // Inicializar Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    
-    // Hacer disponibles globalmente
-    window.auth = auth;
-    window.db = db;
-    
-    console.log('✅ Firebase inicializado correctamente en preview contrato');
-  </script>
+  <script type="module" src="js/firebase-config.js"></script>
   
   <!-- Script de preview contrato -->
   <script type="module" src="js/preview-contrato.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
+  
+  <!-- Script de respaldo para PDF -->
+  <script>
+         // Función de respaldo para descargar PDF
+     if (!window.descargarPDF) {
+       window.descargarPDF = function() {
+         console.log('📥 Usando función de respaldo para descargar PDF...');
+         
+         if (typeof html2pdf === 'undefined') {
+           alert('Error: La librería de PDF no está cargada. Por favor, recarga la página.');
+           return;
+         }
+         
+         // Obtener datos del contrato desde la URL
+         const urlParams = new URLSearchParams(window.location.search);
+         const contratoData = urlParams.get('data');
+         
+         if (!contratoData) {
+           alert('Error: No se encontraron datos del contrato.');
+           return;
+         }
+         
+         try {
+           const contratoActual = JSON.parse(decodeURIComponent(contratoData));
+           
+           // Crear div temporal
+           const tempDiv = document.createElement('div');
+           tempDiv.style.position = 'absolute';
+           tempDiv.style.left = '-9999px';
+           tempDiv.style.top = '-9999px';
+           tempDiv.style.width = '210mm';
+           tempDiv.style.backgroundColor = 'white';
+           tempDiv.style.padding = '20mm';
+           tempDiv.style.fontFamily = 'Arial, sans-serif';
+           tempDiv.style.color = '#000';
+           tempDiv.style.fontSize = '14px';
+           tempDiv.style.lineHeight = '1.6';
+           tempDiv.style.border = '2px solid black';
+           
+           // Generar contenido HTML usando la misma lógica que el cotizador
+           const contenidoHTML = `
+             <div class="pdf-header" style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #00B8D9; padding-bottom: 20px;">
+               <h1 style="font-size:2.5rem;color:#23263A;font-weight:bold;margin:0;">SUBE IA TECH</h1>
+               <h2 style="font-size:1.8rem;color:#23263A;font-weight:600;margin:10px 0;">${contratoActual.tituloContrato || 'Contrato de Servicios'}</h2>
+               <div class="info-empresa" style="color:#23263A;font-weight:bold;margin:10px 0;">
+                 <strong>Sube IA Tech Ltda.</strong><br>
+                 Fco. Mansilla 1007, Castro, Chile<br>
+                 RUT: 77.994.591-K<br>
+                 contacto@subeia.tech
+               </div>
+               <div class="datos-contrato" style="color:#23263A;font-weight:bold;margin-top: 15px;">
+                 <span style="margin: 0 15px;"><b>Código:</b> <span style="font-family:monospace;color:#00B8D9;font-size:1.1em;">${contratoActual.codigoCotizacion}</span></span>
+                 <span style="margin: 0 15px;"><b>Estado:</b> <span style="color:#FF4EFF;">${contratoActual.estadoContrato || 'Pendiente de Firma'}</span></span>
+               </div>
+             </div>
+
+             <div class="pdf-body" style="color:#23263A;font-size:14px;line-height:1.6;">
+               
+               <div class="seccion" style="margin-bottom: 25px;">
+                 <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">👤 Información del Cliente</h3>
+                 <div class="datos-cliente" style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                     <div><strong>Nombre:</strong> ${contratoActual.cliente?.nombre || 'No especificado'}</div>
+                     <div><strong>Email:</strong> ${contratoActual.cliente?.email || 'No especificado'}</div>
+                     <div><strong>RUT:</strong> ${contratoActual.cliente?.rut || 'No especificado'}</div>
+                     <div><strong>Empresa:</strong> ${contratoActual.cliente?.empresa || 'No especificada'}</div>
+                   </div>
+                 </div>
+               </div>
+
+               <div class="seccion" style="margin-bottom: 25px;">
+                 <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Información General</h3>
+                 <div class="info-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                   <div class="info-item" style="background:#f8fafc;padding:12px;border-radius:8px;border-left:4px solid #00B8D9;">
+                     <strong>Atendido por:</strong><br>
+                     <span style="color:#64748b;">${contratoActual.atendido || 'No especificado'}</span>
+                   </div>
+                   <div class="info-item" style="background:#f8fafc;padding:12px;border-radius:8px;border-left:4px solid #00B8D9;">
+                     <strong>Fecha de Creación:</strong><br>
+                     <span style="color:#64748b;">${new Date().toLocaleDateString('es-CL')}</span>
+                   </div>
+                 </div>
+               </div>
+
+               ${contratoActual.descripcionServicios ? `
+               <div class="seccion" style="margin-bottom: 25px;">
+                 <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📝 Descripción de Servicios</h3>
+                 <div class="descripcion-servicios" style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
+                   ${contratoActual.descripcionServicios}
+                 </div>
+               </div>
+               ` : ''}
+
+               ${contratoActual.terminosCondiciones ? `
+               <div class="seccion" style="margin-bottom: 25px;">
+                 <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Términos y Condiciones</h3>
+                 <div class="terminos-condiciones" style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
+                   ${contratoActual.terminosCondiciones}
+                 </div>
+               </div>
+               ` : ''}
+
+             </div>
+
+             <div class="footer" style="margin-top: 40px;text-align: center;border-top: 3px solid #00B8D9;padding-top: 20px;color:#23263A;">
+               <div style="font-weight:bold;margin-bottom: 10px;">Sube IA Tech Ltda.</div>
+               <div style="font-size:0.9em;color:#64748b;margin-bottom: 15px;">
+                 contacto@subeia.tech &mdash; Fco. Mansilla 1007, Castro, Chile
+               </div>
+               <div style="font-size:0.8em;color:#64748b;">
+                 Documento generado el ${new Date().toLocaleDateString('es-CL')}
+               </div>
+             </div>
+           `;
+           
+           tempDiv.innerHTML = contenidoHTML;
+           document.body.appendChild(tempDiv);
+           
+           console.log('📄 Generando PDF con función de respaldo...');
+           console.log('📋 Contenido del div:', tempDiv.innerHTML);
+           
+           // Generar PDF con configuración simple
+           html2pdf().from(tempDiv).save(`contrato-${contratoActual.codigoCotizacion || 'test'}.pdf`)
+             .then(() => {
+               document.body.removeChild(tempDiv);
+               console.log('✅ PDF generado con función de respaldo');
+             })
+             .catch((error) => {
+               document.body.removeChild(tempDiv);
+               console.error('❌ Error en función de respaldo:', error);
+               alert('Error al generar PDF: ' + error.message);
+             });
+             
+         } catch (error) {
+           console.error('❌ Error en función de respaldo:', error);
+           alert('Error al procesar datos del contrato. Usa la función de imprimir.');
+         }
+       };
+     }
+    
+    // Función de respaldo para imprimir
+    if (!window.imprimirContrato) {
+      window.imprimirContrato = function() {
+        window.print();
+      };
+    }
+    
+    // Función de respaldo para volver
+    if (!window.volverContratos) {
+      window.volverContratos = function() {
+        window.location.href = 'contratos.html';
+      };
+    }
+  </script>
 </body>
 </html> 

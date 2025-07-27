@@ -1,5 +1,8 @@
-// Configuración de Firebase
+// Script principal del cotizador
+import { auth, db } from './firebase-config.js';
 import { renderInvoice } from '../templates/invoice-template.js';
+import { signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Variables globales
 let codigoActual = 1;
@@ -53,14 +56,8 @@ async function manejarLogin(event) {
   try {
     console.log('🔥 Intentando autenticación con Firebase...');
     
-    // Verificar que Firebase esté disponible
-    if (!window.auth) {
-      throw new Error('Firebase no está disponible');
-    }
-    
-    // Usar la nueva API de Firebase
-    const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-    const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+    // Autenticar con Firebase
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
     console.log('✅ Autenticación exitosa:', userCredential.user.email);
     
@@ -100,13 +97,11 @@ async function manejarLogin(event) {
           errorMessage = 'Credenciales inválidas.';
           break;
         default:
-          errorMessage = `Error de autenticación: ${error.code}`;
+          errorMessage = `Error de autenticación: ${error.message}`;
       }
-    } else {
-      errorMessage = error.message || 'Error desconocido';
     }
     
-    mostrarResultadoLogin(`❌ Error: ${errorMessage}`, 'error');
+    mostrarResultadoLogin(errorMessage, 'error');
     
     // Restaurar botón
     if (loginButton) {
@@ -120,30 +115,27 @@ async function manejarLogin(event) {
 function configurarUIUsuarioAutenticado(user) {
   console.log('👤 Configurando UI para usuario autenticado:', user.email);
   
-  // Mostrar información del usuario
-  const userEmailElement = document.getElementById('user-email');
-  if (userEmailElement) {
-    userEmailElement.textContent = `Usuario: ${user.email}`;
-  }
-  
-  const userInfoElement = document.getElementById('user-info');
-  if (userInfoElement) {
-    userInfoElement.style.display = 'block';
-  }
-  
-  // Ocultar login y mostrar cotizador
+  // Ocultar sección de login
   const loginSection = document.getElementById('login-section');
-  const cotizadorSection = document.getElementById('cotizador-section');
-  
   if (loginSection) {
     loginSection.style.display = 'none';
-    console.log('✅ Sección de login ocultada');
   }
   
+  // Mostrar información del usuario
+  const userInfo = document.getElementById('user-info');
+  const userEmail = document.getElementById('user-email');
+  if (userInfo && userEmail) {
+    userEmail.textContent = user.email;
+    userInfo.style.display = 'block';
+  }
+  
+  // Mostrar sección del cotizador
+  const cotizadorSection = document.getElementById('cotizador-section');
   if (cotizadorSection) {
     cotizadorSection.style.display = 'block';
-    console.log('✅ Sección del cotizador mostrada');
   }
+  
+  console.log('✅ UI configurada para usuario autenticado');
 }
 
 // Función para cerrar sesión
@@ -151,16 +143,8 @@ async function cerrarSesion() {
   console.log('🚪 Cerrando sesión...');
   
   try {
-    if (!window.auth) {
-      throw new Error('Firebase no está disponible');
-    }
-    
-    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-    await signOut(window.auth);
-    
+    await signOut(auth);
     console.log('✅ Sesión cerrada exitosamente');
-    
-    // Configurar UI para usuario no autenticado
     configurarUIUsuarioNoAutenticado();
   } catch (error) {
     console.error('❌ Error al cerrar sesión:', error);
@@ -172,40 +156,28 @@ async function cerrarSesion() {
 function configurarUIUsuarioNoAutenticado() {
   console.log('👤 Configurando UI para usuario no autenticado');
   
-  // Ocultar información del usuario
-  const userInfoElement = document.getElementById('user-info');
-  if (userInfoElement) {
-    userInfoElement.style.display = 'none';
-  }
-  
-  // Mostrar login y ocultar cotizador
+  // Mostrar sección de login
   const loginSection = document.getElementById('login-section');
-  const cotizadorSection = document.getElementById('cotizador-section');
-  
   if (loginSection) {
     loginSection.style.display = 'block';
-    console.log('✅ Sección de login mostrada');
   }
   
+  // Ocultar información del usuario
+  const userInfo = document.getElementById('user-info');
+  if (userInfo) {
+    userInfo.style.display = 'none';
+  }
+  
+  // Ocultar sección del cotizador
+  const cotizadorSection = document.getElementById('cotizador-section');
   if (cotizadorSection) {
     cotizadorSection.style.display = 'none';
-    console.log('✅ Sección del cotizador ocultada');
   }
   
-  // Limpiar formulario de login
-  const loginForm = document.getElementById('login-form');
-  if (loginForm) {
-    loginForm.reset();
-  }
-  
-  // Limpiar mensajes
-  const loginResult = document.getElementById('login-result');
-  if (loginResult) {
-    loginResult.style.display = 'none';
-  }
+  console.log('✅ UI configurada para usuario no autenticado');
 }
 
-// Función para ir al admin
+// Función para ir al panel de administración
 function irAlAdmin() {
   window.location.href = 'admin.html';
 }
@@ -214,9 +186,14 @@ function irAlAdmin() {
 
 // Función para generar código único
 function generarCodigo() {
-  const codigo = `SUBEIA-${String(codigoActual).padStart(6, '0')}`;
-  codigoActual++;
-  return codigo;
+  const fecha = new Date();
+  const año = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const hora = String(fecha.getHours()).padStart(2, '0');
+  const minuto = String(fecha.getMinutes()).padStart(2, '0');
+  
+  return `COT-${año}${mes}${dia}-${hora}${minuto}-${String(codigoActual).padStart(3, '0')}`;
 }
 
 // Función para renderizar detalles de servicios
@@ -288,7 +265,7 @@ function renderizarDetalles() {
     
     detalleDiv.appendChild(servicioDiv);
     
-    // Agregar event listeners
+    // Agregar event listeners a los nuevos elementos
     addEventListenersToDetails(servicioDiv, index);
     
     // Calcular subtotal inicial
@@ -348,333 +325,232 @@ function calcularSubtotal(index) {
   const tipo = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
   const subtotalDiv = document.getElementById(`subtotal_${index}`);
   
-  if (!subtotalDiv) return;
+  if (!subtotalDiv || !tipo) return;
   
   let subtotal = 0;
+  const alumnos = parseInt(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
   
   if (tipo === 'sesion') {
-    const sesiones = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
-    const valorSesion = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
+    const sesiones = parseInt(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
+    const valorSesion = parseFloat(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
     subtotal = sesiones * valorSesion;
   } else if (tipo === 'alumno') {
-    const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
-    const valorAlumno = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
+    const valorAlumno = parseFloat(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
     subtotal = alumnos * valorAlumno;
   } else if (tipo === 'directo') {
-    subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
+    subtotal = parseFloat(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
   }
   
-  subtotalDiv.textContent = `Subtotal: ${subtotal.toLocaleString()}`;
+  subtotalDiv.textContent = `Subtotal: $${subtotal.toLocaleString('es-CL')}`;
 }
 
 // Función para generar PDF
 function generarPDF(datos) {
   console.log('📄 Generando PDF...');
-  mostrarResultado('📄 Generando PDF...', 'info');
-
-  if (typeof html2pdf === 'undefined') {
-    console.error('❌ html2pdf no está disponible');
-    mostrarResultado('Error: La librería de generación de PDF no está cargada.', 'error');
-    return;
-  }
-
-  if (typeof renderInvoice !== 'function') {
-    console.error('❌ renderInvoice no está disponible');
-    mostrarResultado('Error: La función de renderizado no está disponible.', 'error');
-    return;
-  }
-
+  
   try {
+    // Crear div temporal
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '0';
-    tempDiv.style.width = '210mm';
-    tempDiv.style.backgroundColor = 'white';
-    tempDiv.style.padding = '20mm';
-    tempDiv.style.zIndex = '-1';
-
-    tempDiv.innerHTML = renderInvoice({
-      nombre: datos.nombre,
-      email: datos.email,
-      rut: datos.rut,
-      empresa: datos.empresa,
-      moneda: datos.moneda,
-      codigo: datos.codigo,
-      fecha: datos.fecha,
-      serviciosData: datos.servicios,
-      total: datos.total,
-      atendedor: datos.atendido,
-      notasAdicionales: datos.notas,
-      descuento: datos.descuento
-    });
-
+    tempDiv.style.top = '-9999px';
+    
+    // Generar HTML de la factura
+    const htmlContent = renderInvoice(datos);
+    tempDiv.innerHTML = htmlContent;
+    
+    // Agregar al body
     document.body.appendChild(tempDiv);
-
-    const opt = {
-      margin: 0,
-      filename: `${datos.codigo}_cotizacion.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(tempDiv).save()
+    
+    // Generar PDF
+    html2pdf().from(tempDiv).save(`cotizacion-${datos.codigo}.pdf`)
       .then(() => {
         console.log('✅ PDF generado exitosamente');
-        mostrarResultado(`✅ PDF generado: ${datos.codigo}_cotizacion.pdf`, 'success');
-
-        if (document.body.contains(tempDiv)) {
-          document.body.removeChild(tempDiv);
-        }
+        // Eliminar div temporal
+        document.body.removeChild(tempDiv);
       })
       .catch((error) => {
         console.error('❌ Error al generar PDF:', error);
+        // Eliminar div temporal en caso de error
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
-        mostrarResultado('Error al generar el PDF. Por favor, inténtalo de nuevo.', 'error');
+        mostrarResultado('Error al generar PDF. Por favor, inténtalo de nuevo.', 'error');
       });
-
+      
   } catch (error) {
-    console.error('❌ Error al generar PDF:', error);
-    mostrarResultado('Error al generar el PDF. Por favor, inténtalo de nuevo.', 'error');
+    console.error('❌ Error en generarPDF:', error);
+    mostrarResultado('Error al generar PDF. Por favor, inténtalo de nuevo.', 'error');
   }
 }
 
 // Función para guardar en Firestore
 async function guardarEnFirestore(datos) {
+  console.log('💾 Guardando en Firestore...');
+  
   try {
-    console.log('💾 Guardando en Firestore...');
-    
-    const cotizacionData = {
-      ...datos,
-      fecha: new Date(),
-      createdAt: new Date(),
-      creadoPor: window.auth.currentUser ? window.auth.currentUser.email : 'usuario_anonimo'
-    };
-    
-    // Usar la nueva API de Firestore
-    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    await setDoc(doc(window.db, 'cotizaciones', datos.codigo), cotizacionData);
-    
-    console.log('✅ Datos guardados en Firestore exitosamente');
-    return true;
+    const codigo = datos.codigo;
+    await setDoc(doc(db, 'cotizaciones', codigo), datos);
+    console.log('✅ Datos guardados exitosamente en Firestore');
   } catch (error) {
-    console.error('❌ Error guardando en Firestore:', error);
-    throw error;
+    console.error('❌ Error al guardar en Firestore:', error);
+    throw new Error(`Error al guardar en la base de datos: ${error.message}`);
   }
 }
 
 // Función para recopilar datos del formulario
 function recopilarDatosFormulario() {
-  console.log('📝 Iniciando recopilación de datos del formulario...');
+  console.log('📝 Recopilando datos del formulario...');
   
-  // ===== VALIDACIONES CRÍTICAS AL INICIO =====
-  
-  // Validar campos obligatorios del cliente
-  const nombre = document.getElementById('nombre').value.trim();
-  const atendido = document.getElementById('atendedor').value;
-  
-  if (!nombre) {
-    alert('El nombre del cliente es obligatorio');
-    return null;
-  }
-  
-  if (!atendido) {
-    alert('El campo "Atendido por" es obligatorio');
-    return null;
-  }
-  
-  // Obtener resto de datos básicos
-  const email = document.getElementById('email-cliente').value.trim();
-  const rut = document.getElementById('rut').value.trim();
-  const empresa = document.getElementById('empresa').value.trim();
-  const moneda = document.getElementById('moneda').value;
-  const descuento = parseFloat(document.getElementById('descuento').value || '0');
-  const notas = document.getElementById('notas').value.trim();
-
-  console.log('📋 Datos básicos:', { nombre, email, rut, empresa, moneda, descuento, atendido });
-
-  // Validar campos requeridos adicionales
-  if (!email || !rut || !empresa) {
-    alert('Por favor, completa todos los campos requeridos (email, RUT, empresa).');
-    return null;
-  }
-
-  // Recopilar servicios
-  const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
-  console.log(`🔍 Servicios seleccionados: ${checkboxes.length}`);
-  
-  if (checkboxes.length === 0) {
-    alert('Por favor, selecciona al menos un servicio.');
-    return null;
-  }
-
-  const servicios = [];
-  let total = 0;
-
-  checkboxes.forEach((checkbox, index) => {
-    console.log(`📦 Procesando servicio ${index + 1}: ${checkbox.value}`);
+  try {
+    // Datos básicos del cliente
+    const nombre = document.getElementById('nombre')?.value?.trim();
+    const emailCliente = document.getElementById('email-cliente')?.value?.trim();
+    const rut = document.getElementById('rut')?.value?.trim();
+    const empresa = document.getElementById('empresa')?.value?.trim();
+    const telefono = document.getElementById('telefono')?.value?.trim();
+    const direccion = document.getElementById('direccion')?.value?.trim();
+    const comuna = document.getElementById('comuna')?.value?.trim();
+    const ciudad = document.getElementById('ciudad')?.value?.trim();
+    const region = document.getElementById('region')?.value?.trim();
     
-    const detalle = document.querySelector(`textarea[name="detalle_${index}"]`)?.value.trim();
-    const modalidad = document.querySelector(`select[name="modalidad_${index}"]`)?.value;
-    const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
-    const tipoCobro = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
-
-    console.log(`📊 Datos del servicio:`, { detalle, modalidad, alumnos, tipoCobro });
-
-    if (!detalle || !modalidad || alumnos <= 0 || !tipoCobro) {
-      alert(`Por favor, completa todos los datos del servicio: ${checkbox.value}`);
-      return null;
+    // Validar campos obligatorios
+    if (!nombre || !emailCliente || !rut) {
+      throw new Error('Por favor, completa todos los campos obligatorios.');
     }
-
-    let cantidad = 0;
-    let valorUnitario = 0;
-    let subtotal = 0;
-    let tipoCobroTexto = '';
-    let cantidadValor = '';
-
-    if (tipoCobro === 'sesion') {
-      cantidad = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
-      valorUnitario = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
-      subtotal = cantidad * valorUnitario;
-      tipoCobroTexto = 'Por sesión';
-      cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
-    } else if (tipoCobro === 'alumno') {
-      cantidad = alumnos;
-      valorUnitario = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
-      subtotal = cantidad * valorUnitario;
-      tipoCobroTexto = 'Por alumno';
-      cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
-    } else if (tipoCobro === 'directo') {
-      subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
-      tipoCobroTexto = 'Total directo';
-    }
-
-    console.log(`💰 Cálculos del servicio:`, { cantidad, valorUnitario, subtotal, tipoCobroTexto });
-
-    if (subtotal <= 0) {
-      alert(`Por favor, ingresa un valor válido para el servicio: ${checkbox.value}`);
-      return null;
-    }
-
-    servicios.push({
-      nombre: checkbox.value,
-      detalle,
-      modalidad,
-      alumnos,
-      tipoCobro,
-      tipoCobroTexto,
-      cantidad,
-      valorUnitario,
-      cantidadValor,
-      subtotal
+    
+    // Datos de servicios
+    const serviciosSeleccionados = [];
+    const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
+    
+    checkboxes.forEach((checkbox, index) => {
+      const detalle = document.querySelector(`textarea[name="detalle_${index}"]`)?.value?.trim();
+      const modalidad = document.querySelector(`select[name="modalidad_${index}"]`)?.value;
+      const alumnos = parseInt(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
+      const tipoCobro = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
+      
+      if (!detalle || !modalidad || !alumnos || !tipoCobro) {
+        throw new Error(`Por favor, completa todos los campos del servicio: ${checkbox.value}`);
+      }
+      
+      let subtotal = 0;
+      let detallesCobro = {};
+      
+      if (tipoCobro === 'sesion') {
+        const sesiones = parseInt(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
+        const valorSesion = parseFloat(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
+        subtotal = sesiones * valorSesion;
+        detallesCobro = { sesiones, valorSesion };
+      } else if (tipoCobro === 'alumno') {
+        const valorAlumno = parseFloat(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
+        subtotal = alumnos * valorAlumno;
+        detallesCobro = { valorAlumno };
+      } else if (tipoCobro === 'directo') {
+        subtotal = parseFloat(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
+        detallesCobro = { totalDirecto: subtotal };
+      }
+      
+      serviciosSeleccionados.push({
+        nombre: checkbox.value,
+        detalle,
+        modalidad,
+        alumnos,
+        tipoCobro,
+        subtotal,
+        detallesCobro
+      });
     });
-
-    total += subtotal;
-  });
-
-  // Calcular descuento
-  const descuentoValor = total * (descuento / 100);
-  const totalConDescuento = total - descuentoValor;
-
-  console.log(`💵 Totales calculados:`, { total, descuento, descuentoValor, totalConDescuento });
-
-  // ===== VALIDACIÓN CRÍTICA DEL TOTAL =====
-  if (total <= 0) {
-    alert('La cotización debe tener un valor mayor a cero. Por favor, verifica los precios de los servicios.');
+    
+    if (serviciosSeleccionados.length === 0) {
+      throw new Error('Por favor, selecciona al menos un servicio.');
+    }
+    
+    // Calcular totales
+    const subtotal = serviciosSeleccionados.reduce((sum, servicio) => sum + servicio.subtotal, 0);
+    const descuento = parseFloat(document.getElementById('descuento')?.value || 0);
+    const descuentoValor = (subtotal * descuento) / 100;
+    const totalConDescuento = subtotal - descuentoValor;
+    
+         // Datos adicionales
+     const notas = document.getElementById('notas')?.value?.trim() || '';
+     const atendido = document.getElementById('atendedor')?.value || 'No especificado';
+    
+    // Generar código único
+    const codigo = generarCodigo();
+    codigoActual++;
+    
+    const datosCotizacion = {
+      codigo,
+      nombre,
+      email: emailCliente,
+      rut,
+      empresa,
+      telefono,
+      direccion,
+      comuna,
+      ciudad,
+      region,
+      servicios: serviciosSeleccionados,
+      atendido,
+      subtotal,
+      descuento,
+      descuentoValor,
+      totalConDescuento,
+      total: totalConDescuento,
+      notas,
+      fecha: new Date().toLocaleDateString('es-CL'),
+      fechaTimestamp: new Date()
+    };
+    
+    console.log('✅ Datos del formulario recopilados exitosamente:', datosCotizacion);
+    return datosCotizacion;
+    
+  } catch (error) {
+    console.error('❌ Error al recopilar datos:', error);
+    mostrarResultado(error.message, 'error');
     return null;
   }
-
-  // Crear objeto de datos
-  const datosCotizacion = {
-    codigo: generarCodigo(),
-    nombre,
-    email,
-    rut,
-    empresa,
-    moneda,
-    atendido,
-    servicios,
-    total,
-    descuento,
-    descuentoValor,
-    totalConDescuento,
-    notas,
-    fecha: new Date().toLocaleDateString('es-CL'),
-    fechaTimestamp: new Date()
-  };
-
-  console.log('✅ Datos del formulario recopilados exitosamente:', datosCotizacion);
-  return datosCotizacion;
 }
 
 // Función principal para guardar y generar cotización
 async function guardarYGenerarCotizacion(event) {
-  // No necesitamos preventDefault() para eventos click
   console.log('🚀 Iniciando proceso de guardado y generación de PDF...');
-  console.log('🔍 Evento recibido:', event.type);
-  console.log('🔍 Elemento que disparó el evento:', event.target);
-
+  
   // Verificar que el usuario esté autenticado
-  if (!window.auth.currentUser) {
+  if (!auth.currentUser) {
     mostrarResultado('❌ Debes iniciar sesión para generar cotizaciones', 'error');
     return;
   }
-
+  
   const btn = document.getElementById('descargar-pdf');
   if (btn) {
     btn.disabled = true;
     btn.textContent = '⏳ Procesando...';
   }
-
+  
   try {
-    // SOLUCIÓN AGRESIVA: Remover required de TODOS los campos temporalmente
-    console.log('🧹 Removiendo required de TODOS los campos temporalmente...');
-    const todosLosCamposRequired = document.querySelectorAll('input[required], select[required], textarea[required]');
-    console.log(`🔍 Encontrados ${todosLosCamposRequired.length} campos con required`);
-    
-    todosLosCamposRequired.forEach(campo => {
-      console.log(`🚫 Removiendo required de: ${campo.name}`);
-      campo.removeAttribute('required');
-      campo.setAttribute('data-temp-required', 'true');
-    });
-
-    // Verificar que no hay campos required antes de procesar
-    const camposRequiredRestantes = document.querySelectorAll('[required]');
-    if (camposRequiredRestantes.length > 0) {
-      console.log(`⚠️ Aún quedan ${camposRequiredRestantes.length} campos con required, forzando eliminación...`);
-      camposRequiredRestantes.forEach(campo => {
-        campo.removeAttribute('required');
-        campo.setAttribute('data-temp-required', 'true');
-      });
-    }
-
     // Recopilar datos del formulario
     console.log('📝 Recopilando datos del formulario...');
     const datos = recopilarDatosFormulario();
-    console.log('✅ Datos recopilados:', datos);
     
-    // Verificar si la recopilación fue exitosa
     if (!datos) {
       console.log('❌ Recopilación de datos falló, deteniendo proceso');
       return;
     }
-
+    
     // Guardar en Firestore
     console.log('💾 Guardando en Firestore...');
     await guardarEnFirestore(datos);
     console.log('✅ Datos guardados exitosamente en Firestore');
-
+    
     mostrarResultado(`✅ Cotización ${datos.codigo} guardada exitosamente!`, 'success');
-
+    
     // Generar PDF
     console.log('📄 Generando PDF...');
     setTimeout(() => {
       generarPDF(datos);
     }, 1000);
-
+    
   } catch (error) {
     console.error('❌ Error en el proceso:', error);
     mostrarResultado(`❌ Error: ${error.message}`, 'error');
@@ -683,112 +559,64 @@ async function guardarYGenerarCotizacion(event) {
       btn.disabled = false;
       btn.textContent = '📄 Generar PDF';
     }
-    
-    // Restaurar required a campos que lo tenían temporalmente
-    console.log('🔄 Restaurando validación de campos...');
-    const camposTemporales = document.querySelectorAll('[data-temp-required]');
-    camposTemporales.forEach(campo => {
-      campo.setAttribute('required', 'required');
-      campo.removeAttribute('data-temp-required');
-    });
-    console.log(`✅ Restaurados ${camposTemporales.length} campos con required`);
   }
-}
-
-// Función para restaurar validación de campos
-
-
-// Función para debug de campos
-function debugCampos() {
-  console.log('🔍 DEBUG: Estado de campos de cobro');
-  const camposCobro = document.querySelectorAll('.campo-cobro');
-  camposCobro.forEach((campo, index) => {
-    const esActivo = campo.classList.contains('active');
-    const camposRequired = campo.querySelectorAll('[required]');
-    console.log(`Campo ${index}: activo=${esActivo}, required=${camposRequired.length}`);
-    camposRequired.forEach(campo => {
-      console.log(`  - ${campo.name}: ${campo.value}`);
-    });
-  });
 }
 
 // ===== INICIALIZACIÓN =====
 
+// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Inicializando aplicación...');
-
-  // Verificar estado de autenticación al cargar
-  if (window.auth) {
-    console.log('✅ Firebase auth disponible');
-    window.auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log('✅ Usuario autenticado:', user.email);
-        configurarUIUsuarioAutenticado(user);
-      } else {
-        console.log('❌ Usuario no autenticado');
-        configurarUIUsuarioNoAutenticado();
-      }
-    });
-  } else {
-    console.log('⚠️ Firebase aún no está cargado, esperando...');
-    // Esperar a que Firebase se cargue
-    const checkFirebase = setInterval(() => {
-      if (window.auth) {
-        clearInterval(checkFirebase);
-        console.log('✅ Firebase auth cargado, configurando listener...');
-        window.auth.onAuthStateChanged((user) => {
-          if (user) {
-            console.log('✅ Usuario autenticado:', user.email);
-            configurarUIUsuarioAutenticado(user);
-          } else {
-            console.log('❌ Usuario no autenticado');
-            configurarUIUsuarioNoAutenticado();
-          }
-        });
-      }
-    }, 100);
-  }
-
-  // Event listener para el formulario de login
+  console.log('✅ DOM cargado, inicializando cotizador...');
+  
+  // Configurar autenticación
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      console.log('✅ Usuario autenticado:', user.email);
+      configurarUIUsuarioAutenticado(user);
+    } else {
+      console.log('❌ Usuario no autenticado');
+      configurarUIUsuarioNoAutenticado();
+    }
+  });
+  
+  // Configurar formulario de login
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', manejarLogin);
-    console.log('✅ Event listener del formulario de login configurado');
-  } else {
-    console.error('❌ Formulario de login no encontrado');
+    console.log('✅ Formulario de login configurado');
   }
-
-  // Event listeners para checkboxes de servicios
+  
+  // Configurar checkboxes de servicios
   const checkboxes = document.querySelectorAll('input[name="servicios"]');
   checkboxes.forEach(checkbox => {
     checkbox.addEventListener('change', renderizarDetalles);
   });
-
-  // Event listener para el botón de generar PDF
-  const btnGenerarPDF = document.getElementById('descargar-pdf');
-  console.log('🔍 Buscando botón generar PDF...');
-  console.log('🔍 Botón encontrado:', btnGenerarPDF);
+  console.log('✅ Checkboxes de servicios configurados');
   
+  // Configurar botón de generar PDF
+  const btnGenerarPDF = document.getElementById('descargar-pdf');
   if (btnGenerarPDF) {
     btnGenerarPDF.addEventListener('click', guardarYGenerarCotizacion);
-    console.log('✅ Event listener del botón generar PDF configurado');
-    console.log('🔍 Botón ID:', btnGenerarPDF.id);
-    console.log('🔍 Botón texto:', btnGenerarPDF.textContent);
-  } else {
-    console.error('❌ Botón generar PDF no encontrado');
-    console.log('🔍 Elementos con ID que contienen "pdf":', document.querySelectorAll('[id*="pdf"]'));
+    console.log('✅ Botón de generar PDF configurado');
   }
-
-  // Hacer disponibles las funciones globalmente
-  window.cerrarSesion = cerrarSesion;
-  window.irAlAdmin = irAlAdmin;
-  window.guardarYGenerarCotizacion = guardarYGenerarCotizacion;
   
-  // Test manual - puedes ejecutar esto en la consola: window.testPDF()
-  window.testPDF = () => {
-    console.log('🧪 Test manual de PDF iniciado');
-    guardarYGenerarCotizacion({ type: 'test', target: document.getElementById('descargar-pdf') });
-  };
+  // Configurar campo de descuento
+  const campoDescuento = document.getElementById('descuento');
+  if (campoDescuento) {
+    campoDescuento.addEventListener('input', () => {
+      // Recalcular todos los subtotales
+      const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
+      checkboxes.forEach((_, index) => {
+        calcularSubtotal(index);
+      });
+    });
+    console.log('✅ Campo de descuento configurado');
+  }
+  
+  console.log('✅ Cotizador inicializado correctamente');
+});
 
-  console.log('✅ Aplicación inicializada correctamente');
-}); 
+// Hacer funciones disponibles globalmente
+window.cerrarSesion = cerrarSesion;
+window.irAlAdmin = irAlAdmin;
+window.guardarYGenerarCotizacion = guardarYGenerarCotizacion; 
