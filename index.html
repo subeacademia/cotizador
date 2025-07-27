@@ -106,6 +106,13 @@
       font-size: 14px;
       margin: 0;
     }
+    .btn-admin {
+      background: #28a745;
+      width: auto;
+      padding: 8px 16px;
+      font-size: 14px;
+      margin: 0 10px;
+    }
     .result {
       background: #f5f5f5;
       padding: 15px;
@@ -148,6 +155,7 @@
       <h1>📄 Cotizador Final - SUBE IA TECH</h1>
       <div id="user-info" class="user-info" style="display: none;">
         <span id="user-email"></span>
+        <button class="btn btn-admin" onclick="irAlAdmin()">Panel Admin</button>
         <button class="btn btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
       </div>
     </div>
@@ -158,12 +166,12 @@
       <p>Debes iniciar sesión para usar el cotizador</p>
       <form id="login-form" class="login-form">
         <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" required value="admin@subeia.tech">
+          <label for="email">Email</label>
+          <input type="email" id="email" required value="admin@subeia.tech">
         </div>
         <div class="form-group">
-          <label for="login-password">Contraseña</label>
-          <input type="password" id="login-password" required value="admin123">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required value="admin123">
         </div>
         <button type="submit" class="btn">Iniciar Sesión</button>
       </form>
@@ -179,8 +187,8 @@
         </div>
         
         <div class="form-group">
-          <label for="email">Email *</label>
-          <input type="email" id="email" required>
+          <label for="email-cliente">Email *</label>
+          <input type="email" id="email-cliente" required>
         </div>
         
         <div class="form-group">
@@ -260,8 +268,8 @@
           <textarea id="notas" rows="3" placeholder="Agrega detalles, condiciones, observaciones, etc."></textarea>
         </div>
         
-        <button type="submit" class="btn" id="generar-btn">
-          🚀 Generar Cotización y PDF
+        <button type="button" class="btn" id="descargar-pdf">
+          📄 Generar PDF
         </button>
       </form>
       
@@ -270,14 +278,12 @@
   </div>
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-  
-  <!-- html2pdf (versión más estable) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
-  <script>
+  <script type="module">
+    // Importar Firebase usando módulos ES6
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
     // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
@@ -287,485 +293,24 @@
       messagingSenderId: "372617480143",
       appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
     };
-
+    
     // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    // Variables globales
-    let codigoActual = 1;
-    let usuarioActual = null;
-
-    // Función para mostrar resultado
-    function mostrarResultado(mensaje, tipo = 'info') {
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = mensaje;
-      resultDiv.className = `result ${tipo}`;
-      resultDiv.style.display = 'block';
-    }
-
-    // Función para mostrar resultado de login
-    function mostrarResultadoLogin(mensaje, tipo = 'info') {
-      const resultDiv = document.getElementById('login-result');
-      resultDiv.innerHTML = mensaje;
-      resultDiv.className = `result ${tipo}`;
-      resultDiv.style.display = 'block';
-    }
-
-    // Función para generar código único
-    function generarCodigo() {
-      const codigo = `SUBEIA-${String(codigoActual).padStart(6, '0')}`;
-      codigoActual++;
-      return codigo;
-    }
-
-    // Función para manejar el login
-    function manejarLogin(event) {
-      event.preventDefault();
-      
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      
-      mostrarResultadoLogin('Iniciando sesión...', 'info');
-      
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          usuarioActual = userCredential.user;
-          mostrarResultadoLogin('✅ Login exitoso!', 'success');
-          
-          // Mostrar información del usuario
-          document.getElementById('user-email').textContent = `Usuario: ${usuarioActual.email}`;
-          document.getElementById('user-info').style.display = 'block';
-          
-          // Ocultar login y mostrar cotizador
-          setTimeout(() => {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('cotizador-section').style.display = 'block';
-          }, 1000);
-        })
-        .catch((error) => {
-          mostrarResultadoLogin(`❌ Error: ${error.message}`, 'error');
-        });
-    }
-
-    // Función para cerrar sesión
-    function cerrarSesion() {
-      auth.signOut().then(() => {
-        usuarioActual = null;
-        document.getElementById('login-section').style.display = 'block';
-        document.getElementById('cotizador-section').style.display = 'none';
-        document.getElementById('user-info').style.display = 'none';
-        document.getElementById('login-result').style.display = 'none';
-        document.getElementById('result').style.display = 'none';
-      });
-    }
-
-    // Función para renderizar detalles de servicios
-    function renderizarDetalles() {
-      const detalleDiv = document.getElementById('servicios-detalle');
-      detalleDiv.innerHTML = '';
-      
-      const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
-      
-      checkboxes.forEach((checkbox, index) => {
-        const servicioDiv = document.createElement('div');
-        servicioDiv.className = 'servicio-detalle';
-        servicioDiv.innerHTML = `
-          <h3>${checkbox.value}</h3>
-          <div class="form-group">
-            <label>Detalle del servicio *</label>
-            <textarea name="detalle_${index}" required placeholder="Describe el servicio..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Modalidad *</label>
-            <select name="modalidad_${index}" required>
-              <option value="">Selecciona...</option>
-              <option value="Presencial">Presencial</option>
-              <option value="Online">Online</option>
-              <option value="Semipresencial">Semipresencial</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Cantidad de alumnos *</label>
-            <input type="number" name="alumnos_${index}" min="1" value="1" required>
-          </div>
-          <div class="form-group">
-            <label>Tipo de cobro *</label>
-            <div class="radio-group">
-              <input type="radio" name="cobro_tipo_${index}" value="sesion" checked>
-              <label>Por sesión</label>
-              <input type="radio" name="cobro_tipo_${index}" value="alumno">
-              <label>Por alumno</label>
-              <input type="radio" name="cobro_tipo_${index}" value="directo">
-              <label>Total directo</label>
-            </div>
-          </div>
-          <div class="campo-cobro campo-sesion active" id="campo_sesion_${index}">
-            <div class="form-group">
-              <label>Cantidad de sesiones *</label>
-              <input type="number" name="sesiones_${index}" min="1" value="1" required>
-            </div>
-            <div class="form-group">
-              <label>Valor unitario por sesión *</label>
-              <input type="number" name="valor_sesion_${index}" min="0" step="0.01" required>
-            </div>
-          </div>
-          <div class="campo-cobro campo-alumno" id="campo_alumno_${index}">
-            <div class="form-group">
-              <label>Valor unitario por alumno *</label>
-              <input type="number" name="valor_alumno_${index}" min="0" step="0.01" required>
-            </div>
-          </div>
-          <div class="campo-cobro campo-directo" id="campo_directo_${index}">
-            <div class="form-group">
-              <label>Total directo *</label>
-              <input type="number" name="total_directo_${index}" min="0" step="0.01" required>
-            </div>
-          </div>
-          <div class="subtotal" id="subtotal_${index}">Subtotal: 0</div>
-        `;
-        
-        detalleDiv.appendChild(servicioDiv);
-        
-        // Agregar event listeners para el tipo de cobro
-        const radios = servicioDiv.querySelectorAll(`input[name="cobro_tipo_${index}"]`);
-        radios.forEach(radio => {
-          radio.addEventListener('change', (e) => {
-            // Ocultar todos los campos
-            servicioDiv.querySelectorAll('.campo-cobro').forEach(campo => {
-              campo.classList.remove('active');
-            });
-            
-            // Mostrar el campo correspondiente
-            if (e.target.value === 'sesion') {
-              servicioDiv.querySelector(`#campo_sesion_${index}`).classList.add('active');
-            } else if (e.target.value === 'alumno') {
-              servicioDiv.querySelector(`#campo_alumno_${index}`).classList.add('active');
-            } else if (e.target.value === 'directo') {
-              servicioDiv.querySelector(`#campo_directo_${index}`).classList.add('active');
-            }
-            
-            calcularSubtotal(index);
-          });
-        });
-        
-        // Agregar event listeners para inputs
-        servicioDiv.querySelectorAll('input, textarea, select').forEach(input => {
-          input.addEventListener('input', () => calcularSubtotal(index));
-          input.addEventListener('change', () => calcularSubtotal(index));
-        });
-        
-        // Calcular subtotal inicial
-        calcularSubtotal(index);
-      });
-    }
-
-    // Función para calcular subtotal
-    function calcularSubtotal(index) {
-      const tipo = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
-      const subtotalDiv = document.getElementById(`subtotal_${index}`);
-      
-      if (!subtotalDiv) return;
-      
-      let subtotal = 0;
-      
-      if (tipo === 'sesion') {
-        const sesiones = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
-        const valorSesion = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
-        subtotal = sesiones * valorSesion;
-      } else if (tipo === 'alumno') {
-        const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
-        const valorAlumno = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
-        subtotal = alumnos * valorAlumno;
-      } else if (tipo === 'directo') {
-        subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
-      }
-      
-      subtotalDiv.textContent = `Subtotal: ${subtotal.toLocaleString()}`;
-    }
-
-    // Función para generar PDF (SOLUCIÓN SIMPLE Y CONFIABLE)
-    function generarPDF(datos) {
-      mostrarResultado('📄 Generando PDF...', 'info');
-      
-      // Crear el HTML del PDF
-      const html = `
-        <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #00B8D9; padding-bottom: 20px;">
-            <h1 style="color: #00B8D9; margin: 0;">SUBE IA TECH</h1>
-            <h2 style="color: #333; margin: 10px 0;">Cotización de Servicios</h2>
-            <p style="color: #666; margin: 5px 0;">Fco. Mansilla 1007, Castro, Chile</p>
-            <p style="color: #666; margin: 5px 0;">RUT: 77.994.591-K | contacto@subeia.tech</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-              <div>
-                <h3 style="color: #333; margin: 0 0 10px 0;">Datos del Cliente</h3>
-                <p style="margin: 5px 0;"><strong>Nombre:</strong> ${datos.nombre}</p>
-                <p style="margin: 5px 0;"><strong>Email:</strong> ${datos.email}</p>
-                <p style="margin: 5px 0;"><strong>RUT:</strong> ${datos.rut}</p>
-                <p style="margin: 5px 0;"><strong>Empresa:</strong> ${datos.empresa}</p>
-              </div>
-              <div>
-                <h3 style="color: #333; margin: 0 0 10px 0;">Información de Cotización</h3>
-                <p style="margin: 5px 0;"><strong>Fecha:</strong> ${datos.fecha}</p>
-                <p style="margin: 5px 0;"><strong>Código:</strong> ${datos.codigo}</p>
-                <p style="margin: 5px 0;"><strong>Moneda:</strong> ${datos.moneda}</p>
-                <p style="margin: 5px 0;"><strong>Atendido por:</strong> ${datos.atendido}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Servicios Cotizados</h3>
-            ${datos.servicios.map(s => `
-              <div style="border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; background: #f9f9f9;">
-                <h4 style="color: #00B8D9; margin: 0 0 10px 0;">${s.nombre}</h4>
-                <p style="margin: 5px 0;"><strong>Detalle:</strong> ${s.detalle}</p>
-                <p style="margin: 5px 0;"><strong>Modalidad:</strong> ${s.modalidad}</p>
-                <p style="margin: 5px 0;"><strong>Alumnos:</strong> ${s.alumnos}</p>
-                <p style="margin: 5px 0;"><strong>Tipo de cobro:</strong> ${s.tipoCobroTexto}</p>
-                ${s.cantidadValor ? `<p style="margin: 5px 0;"><strong>Cantidad x Valor:</strong> ${s.cantidadValor}</p>` : ''}
-                <p style="margin: 5px 0; font-weight: bold; color: #1976d2;"><strong>Subtotal:</strong> ${s.subtotal.toLocaleString()} ${datos.moneda}</p>
-              </div>
-            `).join('')}
-          </div>
-          
-          <div style="border-top: 2px solid #00B8D9; padding-top: 20px; margin-top: 30px;">
-            <div style="text-align: right;">
-              <h3 style="color: #333; margin: 0;">Subtotal: ${datos.total.toLocaleString()} ${datos.moneda}</h3>
-              ${datos.descuento > 0 ? `<h4 style="color: #FF4EFF; margin: 10px 0;">Descuento (${datos.descuento}%): -${datos.descuentoValor.toLocaleString()} ${datos.moneda}</h4>` : ''}
-              <h2 style="color: #00B8D9; margin: 10px 0;">Total: ${datos.totalConDescuento.toLocaleString()} ${datos.moneda}</h2>
-            </div>
-          </div>
-          
-          ${datos.notas ? `<div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px; border-left: 4px solid #FF4EFF;">
-            <h4 style="color: #FF4EFF; margin: 0 0 10px 0;">Notas adicionales:</h4>
-            <p style="margin: 0; white-space: pre-wrap;">${datos.notas}</p>
-          </div>` : ''}
-          
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
-            <p><strong>Válido 15 días</strong></p>
-            <p>Condiciones de pago: 50% al aceptar, 50% contra entrega</p>
-            <p>Consultas: contacto@subeia.tech</p>
-          </div>
-        </div>
-      `;
-      
-      // Crear elemento temporal
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '0';
-      tempDiv.style.width = '210mm';
-      tempDiv.style.backgroundColor = 'white';
-      tempDiv.style.padding = '20mm';
-      tempDiv.style.zIndex = '-1';
-      document.body.appendChild(tempDiv);
-      
-      // Configuración simple de html2pdf
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `${datos.codigo}_cotizacion.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait' 
-        }
-      };
-      
-      // Generar PDF
-      html2pdf().set(opt).from(tempDiv).save()
-        .then(() => {
-          document.body.removeChild(tempDiv);
-          mostrarResultado(`✅ PDF generado exitosamente: ${datos.codigo}_cotizacion.pdf`, 'success');
-        })
-        .catch((error) => {
-          if (document.body.contains(tempDiv)) {
-            document.body.removeChild(tempDiv);
-          }
-          console.error('Error PDF:', error);
-          mostrarResultado(`❌ Error generando PDF: ${error.message}`, 'error');
-        });
-    }
-
-    // Función para guardar en Firestore
-    async function guardarEnFirestore(datos) {
-      try {
-        const cotizacionData = {
-          ...datos,
-          fecha: new Date(),
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          creadoPor: usuarioActual.email
-        };
-        
-        await db.collection('cotizaciones').doc(datos.codigo).set(cotizacionData);
-        return true;
-      } catch (error) {
-        console.error('Error guardando en Firestore:', error);
-        throw error;
-      }
-    }
-
-    // Función principal para procesar el formulario
-    async function procesarCotizacion(event) {
-      event.preventDefault();
-      
-      if (!usuarioActual) {
-        mostrarResultado('❌ Debes iniciar sesión para generar cotizaciones', 'error');
-        return;
-      }
-      
-      const btn = document.getElementById('generar-btn');
-      btn.disabled = true;
-      btn.textContent = '⏳ Procesando...';
-      
-      try {
-        // Recopilar datos del formulario
-        const nombre = document.getElementById('nombre').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const rut = document.getElementById('rut').value.trim();
-        const empresa = document.getElementById('empresa').value.trim();
-        const moneda = document.getElementById('moneda').value;
-        const descuento = parseFloat(document.getElementById('descuento').value || '0');
-        const atendido = document.getElementById('atendedor').value;
-        const notas = document.getElementById('notas').value.trim();
-        
-        // Validar campos requeridos
-        if (!nombre || !email || !rut || !empresa || !atendido) {
-          throw new Error('Por favor, completa todos los campos requeridos.');
-        }
-        
-        // Recopilar servicios
-        const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
-        if (checkboxes.length === 0) {
-          throw new Error('Por favor, selecciona al menos un servicio.');
-        }
-        
-        const servicios = [];
-        let total = 0;
-        
-        checkboxes.forEach((checkbox, index) => {
-          const detalle = document.querySelector(`textarea[name="detalle_${index}"]`)?.value.trim();
-          const modalidad = document.querySelector(`select[name="modalidad_${index}"]`)?.value;
-          const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
-          const tipoCobro = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
-          
-          if (!detalle || !modalidad || alumnos <= 0 || !tipoCobro) {
-            throw new Error(`Por favor, completa todos los datos del servicio: ${checkbox.value}`);
-          }
-          
-          let cantidad = 0;
-          let valorUnitario = 0;
-          let subtotal = 0;
-          let tipoCobroTexto = '';
-          let cantidadValor = '';
-          
-          if (tipoCobro === 'sesion') {
-            cantidad = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
-            valorUnitario = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
-            subtotal = cantidad * valorUnitario;
-            tipoCobroTexto = 'Por sesión';
-            cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
-          } else if (tipoCobro === 'alumno') {
-            cantidad = alumnos;
-            valorUnitario = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
-            subtotal = cantidad * valorUnitario;
-            tipoCobroTexto = 'Por alumno';
-            cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
-          } else if (tipoCobro === 'directo') {
-            subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
-            tipoCobroTexto = 'Total directo';
-          }
-          
-          if (subtotal <= 0) {
-            throw new Error(`Por favor, ingresa un valor válido para el servicio: ${checkbox.value}`);
-          }
-          
-          servicios.push({
-            nombre: checkbox.value,
-            detalle,
-            modalidad,
-            alumnos,
-            tipoCobro,
-            tipoCobroTexto,
-            cantidad,
-            valorUnitario,
-            cantidadValor,
-            subtotal
-          });
-          
-          total += subtotal;
-        });
-        
-        // Calcular descuento
-        const descuentoValor = total * (descuento / 100);
-        const totalConDescuento = total - descuentoValor;
-        
-        // Crear objeto de datos
-        const datosCotizacion = {
-          codigo: generarCodigo(),
-          nombre,
-          email,
-          rut,
-          empresa,
-          moneda,
-          atendido,
-          servicios,
-          total,
-          descuento,
-          descuentoValor,
-          totalConDescuento,
-          notas,
-          fecha: new Date().toLocaleDateString('es-CL')
-        };
-        
-        mostrarResultado('💾 Guardando cotización en la base de datos...', 'info');
-        
-        // Guardar en Firestore
-        await guardarEnFirestore(datosCotizacion);
-        
-        mostrarResultado(`✅ Cotización ${datosCotizacion.codigo} guardada exitosamente!`, 'success');
-        
-        // Generar PDF
-        setTimeout(() => {
-          generarPDF(datosCotizacion);
-        }, 1000);
-        
-      } catch (error) {
-        mostrarResultado(`❌ Error: ${error.message}`, 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '🚀 Generar Cotización y PDF';
-      }
-    }
-
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-      // Event listener para el formulario de login
-      document.getElementById('login-form').addEventListener('submit', manejarLogin);
-      
-      // Event listeners para checkboxes de servicios
-      const checkboxes = document.querySelectorAll('input[name="servicios"]');
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', renderizarDetalles);
-      });
-      
-      // Event listener para el formulario del cotizador
-      document.getElementById('cotizador-form').addEventListener('submit', procesarCotizacion);
-      
-      console.log('✅ Cotizador final inicializado');
-    });
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // Hacer disponibles globalmente
+    window.auth = auth;
+    window.db = db;
+    window.firebase = { auth, firestore: db };
+    
+    console.log('✅ Firebase inicializado correctamente');
   </script>
+  
+  <!-- html2pdf (versión más estable) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Script del cotizador -->
+  <script type="module" src="js/script-new.js"></script>
 </body>
 </html> 

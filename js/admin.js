@@ -1,51 +1,49 @@
 // Importaciones
 import { renderInvoice } from '../templates/invoice-template.js';
-import { db } from './firebase-config.js';
 
 // Variables globales
 let cotizaciones = [];
-let cotizacionSeleccionada = null;
 
 // Elementos del DOM
-const cotizacionesTbody = document.getElementById('cotizaciones-tbody');
-const loadingElement = document.getElementById('loading');
-const noDataElement = document.getElementById('no-data');
-const refreshBtn = document.getElementById('refresh-btn');
-const filterEstado = document.getElementById('filter-estado');
-const confirmModal = document.getElementById('confirm-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalMessage = document.getElementById('modal-message');
-const modalConfirm = document.getElementById('modal-confirm');
-const modalCancel = document.getElementById('modal-cancel');
-const modalClose = document.getElementById('modal-close');
-
-// Elementos de estadísticas
+const cotizacionesList = document.getElementById('cotizaciones-list');
 const totalCotizaciones = document.getElementById('total-cotizaciones');
-const cotizacionesEmitidas = document.getElementById('cotizaciones-emitidas');
-const cotizacionesAceptadas = document.getElementById('cotizaciones-aceptadas');
-const cotizacionesContratadas = document.getElementById('cotizaciones-contratadas');
+const cotizacionesMes = document.getElementById('cotizaciones-mes');
+const valorTotal = document.getElementById('valor-total');
+const filtroFecha = document.getElementById('filtro-fecha');
+const filtroAtendedor = document.getElementById('filtro-atendedor');
+const aplicarFiltros = document.getElementById('aplicar-filtros');
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  cargarCotizaciones();
-  setupEventListeners();
+  console.log('🚀 Inicializando panel de administración...');
+  
+  // Esperar a que Firebase esté disponible
+  if (window.db) {
+    cargarCotizaciones();
+    setupEventListeners();
+  } else {
+    console.log('⚠️ Firebase aún no está cargado, esperando...');
+    const checkFirebase = setInterval(() => {
+      if (window.db) {
+        clearInterval(checkFirebase);
+        cargarCotizaciones();
+        setupEventListeners();
+      }
+    }, 100);
+  }
 });
 
 // Configurar event listeners
 function setupEventListeners() {
-  if (refreshBtn) refreshBtn.addEventListener('click', cargarCotizaciones);
-  if (filterEstado) filterEstado.addEventListener('change', filtrarCotizaciones);
-  if (modalCancel) modalCancel.addEventListener('click', cerrarModal);
-  if (modalClose) modalClose.addEventListener('click', cerrarModal);
-  if (modalConfirm) modalConfirm.addEventListener('click', ejecutarAccionConfirmada);
+  if (aplicarFiltros) {
+    aplicarFiltros.addEventListener('click', filtrarCotizaciones);
+  }
   
-  // Cerrar modal al hacer clic fuera
-  if (confirmModal) {
-    confirmModal.addEventListener('click', (e) => {
-      if (e.target === confirmModal) {
-        cerrarModal();
-      }
-    });
+  // Configurar buscador en tiempo real
+  const buscador = document.getElementById('buscador');
+  if (buscador) {
+    buscador.addEventListener('input', buscarEnTiempoReal);
+    console.log('✅ Buscador configurado');
   }
 }
 
@@ -55,38 +53,37 @@ async function cargarCotizaciones() {
     console.log('🔄 Cargando cotizaciones...');
     mostrarLoading(true);
     
-    const snapshot = await db.collection('cotizaciones')
-      .orderBy('fecha', 'desc')
-      .get();
+    // Usar la nueva API de Firestore
+    const { collection, query, orderBy, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    const q = query(
+      collection(window.db, 'cotizaciones'),
+      orderBy('fechaTimestamp', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
     
     console.log(`📊 Snapshot obtenido: ${snapshot.size} documentos`);
     
-    // CRÍTICO: Comprobación explícita del estado vacío
     if (snapshot.empty) {
       console.log('📭 No hay cotizaciones disponibles');
       cotizaciones = [];
-      
-      // Si es true, oculta el spinner de carga, muestra el elemento de "sin datos" y vacía el tbody
       mostrarLoading(false);
       mostrarNoData(true);
-      if (cotizacionesTbody) {
-        cotizacionesTbody.innerHTML = '';
-      }
       actualizarEstadisticas();
       return;
     }
     
-    // Si es false, procede a renderizar la tabla como lo hace actualmente
     cotizaciones = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      fecha: doc.data().fecha?.toDate() || new Date()
+      fecha: doc.data().fechaTimestamp?.toDate() || new Date()
     }));
     
     console.log(`✅ ${cotizaciones.length} cotizaciones cargadas`);
     
     actualizarEstadisticas();
-    renderizarTabla();
+    renderizarCotizaciones();
     mostrarLoading(false);
     mostrarNoData(false);
     
@@ -98,128 +95,231 @@ async function cargarCotizaciones() {
   }
 }
 
-// Mostrar/ocultar loading
 function mostrarLoading(mostrar) {
-  if (loadingElement) {
-    loadingElement.style.display = mostrar ? 'block' : 'none';
-  }
-  if (cotizacionesTbody) {
-    cotizacionesTbody.style.display = mostrar ? 'none' : 'table-row-group';
+  if (cotizacionesList) {
+    if (mostrar) {
+      cotizacionesList.innerHTML = '<div class="loading">Cargando cotizaciones...</div>';
+    }
   }
 }
 
-// Mostrar/ocultar mensaje de no datos
 function mostrarNoData(mostrar) {
-  if (noDataElement) {
-    noDataElement.style.display = mostrar ? 'block' : 'none';
+  if (cotizacionesList && mostrar) {
+    cotizacionesList.innerHTML = '<div class="no-data">No hay cotizaciones disponibles</div>';
   }
 }
 
-// Actualizar estadísticas
 function actualizarEstadisticas() {
   const total = cotizaciones.length;
-  const emitidas = cotizaciones.filter(c => c.estado === 'Emitida').length;
-  const aceptadas = cotizaciones.filter(c => c.estado === 'Aceptada').length;
-  const contratadas = cotizaciones.filter(c => c.estado === 'Contratada').length;
+  const ahora = new Date();
+  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+  
+  const delMes = cotizaciones.filter(c => c.fecha >= inicioMes).length;
+  const valorTotalCalculado = cotizaciones.reduce((sum, c) => sum + (c.totalConDescuento || 0), 0);
   
   if (totalCotizaciones) totalCotizaciones.textContent = total;
-  if (cotizacionesEmitidas) cotizacionesEmitidas.textContent = emitidas;
-  if (cotizacionesAceptadas) cotizacionesAceptadas.textContent = aceptadas;
-  if (cotizacionesContratadas) cotizacionesContratadas.textContent = contratadas;
+  if (cotizacionesMes) cotizacionesMes.textContent = delMes;
+  if (valorTotal) valorTotal.textContent = `$${valorTotalCalculado.toLocaleString()}`;
 }
 
-// Renderizar tabla de cotizaciones
-function renderizarTabla() {
-  const cotizacionesFiltradas = filtrarCotizaciones();
+function renderizarCotizaciones() {
+  if (!cotizacionesList) return;
   
-  if (!cotizacionesTbody) {
-    console.error('❌ Elemento cotizaciones-tbody no encontrado');
+  if (cotizaciones.length === 0) {
+    cotizacionesList.innerHTML = '<div class="no-data">No hay cotizaciones disponibles</div>';
     return;
   }
   
-  if (cotizacionesFiltradas.length === 0) {
-    mostrarNoData(true);
-    cotizacionesTbody.innerHTML = '';
-    return;
-  }
+  const html = cotizaciones.map(cotizacion => `
+    <div class="cotizacion-card">
+      <div class="cotizacion-header">
+        <h3>${cotizacion.codigo}</h3>
+        <span class="fecha">${formatearFecha(cotizacion.fecha)}</span>
+      </div>
+      <div class="cotizacion-body">
+        <p><strong>Cliente:</strong> ${cotizacion.nombre}</p>
+        <p><strong>Empresa:</strong> ${cotizacion.empresa}</p>
+        <p><strong>Atendido por:</strong> ${cotizacion.atendido}</p>
+        <p><strong>Total:</strong> $${(cotizacion.totalConDescuento || 0).toLocaleString()}</p>
+      </div>
+      <div class="cotizacion-actions">
+        <button onclick="previsualizarCotizacion('${cotizacion.id}')" class="btn btn-preview">👁️ Previsualizar</button>
+        <button onclick="generarPDF('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
+        <button onclick="verDetalles('${cotizacion.id}')" class="btn btn-details">📋 Ver</button>
+      </div>
+    </div>
+  `).join('');
   
-  mostrarNoData(false);
-  
-  cotizacionesTbody.innerHTML = cotizacionesFiltradas.map(cotizacion => {
-    const totalConDescuento = calcularTotalConDescuento(cotizacion);
-    const fechaFormateada = formatearFecha(cotizacion.fecha);
-    
-    return `
-      <tr>
-        <td>${cotizacion.codigo || cotizacion.id}</td>
-        <td>${fechaFormateada}</td>
-        <td>${cotizacion.nombre || 'N/A'}</td>
-        <td>${totalConDescuento.toLocaleString()}</td>
-        <td>
-          <span class="status-badge status-${cotizacion.estado?.toLowerCase() || 'emitida'}">
-            ${cotizacion.estado || 'Emitida'}
-          </span>
-        </td>
-        <td class="actions">
-          <button onclick="marcarAceptada('${cotizacion.codigo || cotizacion.id}')" 
-                  class="btn-action btn-accept" 
-                  title="Marcar como Aceptada"
-                  ${cotizacion.estado === 'Aceptada' || cotizacion.estado === 'Contratada' ? 'disabled' : ''}>
-            <i class="fas fa-check"></i>
-          </button>
-          <button onclick="generarContrato('${cotizacion.codigo || cotizacion.id}')" 
-                  class="btn-action btn-contract" 
-                  title="Generar Contrato"
-                  ${cotizacion.estado === 'Contratada' ? 'disabled' : ''}>
-            <i class="fas fa-file-contract"></i>
-          </button>
-          <button onclick="verPDF('${cotizacion.codigo || cotizacion.id}')" 
-                  class="btn-action btn-view" 
-                  title="Ver PDF">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button onclick="eliminarCotizacion('${cotizacion.codigo || cotizacion.id}')" 
-                  class="btn-action btn-delete" 
-                  title="Eliminar">
-            <i class="fas fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  cotizacionesList.innerHTML = html;
 }
 
-// Filtrar cotizaciones por estado
 function filtrarCotizaciones() {
-  const estadoSeleccionado = filterEstado.value;
+  const filtroFechaValor = filtroFecha?.value || 'todos';
+  const filtroAtendedorValor = filtroAtendedor?.value || 'todos';
   
-  if (estadoSeleccionado === 'todos') {
-    return cotizaciones;
+  let cotizacionesFiltradas = [...cotizaciones];
+  
+  // Filtrar por fecha
+  if (filtroFechaValor !== 'todos') {
+    const ahora = new Date();
+    let fechaInicio;
+    
+    switch (filtroFechaValor) {
+      case 'hoy':
+        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        break;
+      case 'semana':
+        fechaInicio = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'mes':
+        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+        break;
+    }
+    
+    cotizacionesFiltradas = cotizacionesFiltradas.filter(c => c.fecha >= fechaInicio);
   }
   
-  return cotizaciones.filter(cotizacion => 
-    cotizacion.estado === estadoSeleccionado
-  );
-}
-
-// Calcular total con descuento
-function calcularTotalConDescuento(cotizacion) {
-  const total = cotizacion.total || 0;
-  const descuento = cotizacion.descuento || 0;
-  
-  if (descuento > 0) {
-    return Math.round(total * (1 - descuento / 100));
+  // Filtrar por atendido
+  if (filtroAtendedorValor !== 'todos') {
+    cotizacionesFiltradas = cotizacionesFiltradas.filter(c => c.atendido === filtroAtendedorValor);
   }
   
-  return total;
+  // Renderizar cotizaciones filtradas
+  renderizarCotizacionesFiltradas(cotizacionesFiltradas);
 }
 
-// Formatear fecha
+// Función de búsqueda en tiempo real
+function buscarEnTiempoReal(event) {
+  const termino = event.target.value.toLowerCase().trim();
+  console.log('🔍 Buscando:', termino);
+  console.log('🔍 Total de cotizaciones disponibles:', cotizaciones.length);
+  
+  if (cotizaciones.length === 0) {
+    console.log('⚠️ No hay cotizaciones cargadas para buscar');
+    return;
+  }
+  
+  if (termino === '') {
+    // Si no hay término de búsqueda, aplicar solo filtros
+    filtrarCotizaciones();
+    return;
+  }
+  
+  // Obtener cotizaciones filtradas por fecha y atendido
+  let cotizacionesFiltradas = [...cotizaciones];
+  
+  const filtroFechaValor = filtroFecha?.value || 'todos';
+  const filtroAtendedorValor = filtroAtendedor?.value || 'todos';
+  
+  // Aplicar filtros de fecha y atendido
+  if (filtroFechaValor !== 'todos') {
+    const ahora = new Date();
+    let fechaInicio;
+    
+    switch (filtroFechaValor) {
+      case 'hoy':
+        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        break;
+      case 'semana':
+        fechaInicio = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'mes':
+        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+        break;
+    }
+    
+    cotizacionesFiltradas = cotizacionesFiltradas.filter(c => c.fecha >= fechaInicio);
+  }
+  
+  if (filtroAtendedorValor !== 'todos') {
+    cotizacionesFiltradas = cotizacionesFiltradas.filter(c => c.atendido === filtroAtendedorValor);
+  }
+  
+  // Aplicar búsqueda en tiempo real - BUSQUEDA COMPLETA EN TODAS LAS VARIABLES
+  const cotizacionesBuscadas = cotizacionesFiltradas.filter(cotizacion => {
+    // Convertir toda la cotización a string para búsqueda completa
+    const cotizacionString = JSON.stringify(cotizacion).toLowerCase();
+    
+    // Búsqueda específica en campos principales
+    const busquedaEspecifica = (
+      cotizacion.codigo?.toLowerCase().includes(termino) ||
+      cotizacion.nombre?.toLowerCase().includes(termino) ||
+      cotizacion.empresa?.toLowerCase().includes(termino) ||
+      cotizacion.email?.toLowerCase().includes(termino) ||
+      cotizacion.atendido?.toLowerCase().includes(termino) ||
+      cotizacion.rut?.toLowerCase().includes(termino) ||
+      (cotizacion.fecha ? new Date(cotizacion.fecha).toLocaleDateString('es-CL').toLowerCase() : '').includes(termino) ||
+      cotizacion.total?.toString().includes(termino) ||
+      cotizacion.totalConDescuento?.toString().includes(termino) ||
+      cotizacion.descuento?.toString().includes(termino) ||
+      cotizacion.notas?.toLowerCase().includes(termino)
+    );
+    
+    // Búsqueda en servicios
+    const busquedaServicios = cotizacion.servicios?.some(servicio => 
+      servicio.nombre?.toLowerCase().includes(termino) ||
+      servicio.detalle?.toLowerCase().includes(termino) ||
+      servicio.modalidad?.toLowerCase().includes(termino) ||
+      servicio.tipoCobro?.toLowerCase().includes(termino) ||
+      servicio.cantidad?.toString().includes(termino) ||
+      servicio.valorUnitario?.toString().includes(termino) ||
+      servicio.subtotal?.toString().includes(termino)
+    );
+    
+    // Búsqueda completa en toda la estructura
+    const busquedaCompleta = cotizacionString.includes(termino);
+    
+    return busquedaEspecifica || busquedaServicios || busquedaCompleta;
+  });
+  
+  console.log(`🔍 Búsqueda completada: ${cotizacionesBuscadas.length} resultados`);
+  console.log('🔍 Resultados encontrados:', cotizacionesBuscadas.map(c => c.codigo));
+  renderizarCotizacionesFiltradas(cotizacionesBuscadas);
+}
+
+// Función para renderizar cotizaciones filtradas
+function renderizarCotizacionesFiltradas(cotizacionesFiltradas) {
+  if (cotizacionesList) {
+    if (cotizacionesFiltradas.length === 0) {
+      cotizacionesList.innerHTML = '<div class="no-data">No hay cotizaciones que coincidan con los filtros</div>';
+    } else {
+      const html = cotizacionesFiltradas.map(cotizacion => `
+        <div class="cotizacion-card">
+          <div class="cotizacion-header">
+            <h3>${cotizacion.codigo}</h3>
+            <span class="fecha">${formatearFecha(cotizacion.fecha)}</span>
+          </div>
+          <div class="cotizacion-body">
+            <div class="cliente-info">
+              <p><strong>👤 Cliente:</strong> ${cotizacion.nombre || 'No especificado'}</p>
+              <p><strong>🏢 Empresa:</strong> ${cotizacion.empresa || 'No especificada'}</p>
+              <p><strong>📧 Email:</strong> ${cotizacion.email || 'No especificado'}</p>
+              <p><strong>🆔 RUT:</strong> ${cotizacion.rut || 'No especificado'}</p>
+            </div>
+            <p><strong>👨‍💼 Atendido por:</strong> ${cotizacion.atendido || 'No especificado'}</p>
+            <div class="total-info">
+              <strong>💰 Total:</strong> $${(cotizacion.totalConDescuento || cotizacion.total || 0).toLocaleString()}
+              ${cotizacion.descuento > 0 ? `<br><small>Descuento: ${cotizacion.descuento}%</small>` : ''}
+            </div>
+          </div>
+          <div class="cotizacion-actions">
+            <button onclick="generarPDF('${cotizacion.id}')" class="btn btn-pdf">📄 PDF</button>
+            <button onclick="verDetalles('${cotizacion.id}')" class="btn btn-details">👁️ Ver</button>
+            <button onclick="previsualizarCotizacion('${cotizacion.id}')" class="btn btn-preview">👁️ Previsualizar</button>
+          </div>
+        </div>
+      `).join('');
+      
+      cotizacionesList.innerHTML = html;
+    }
+  }
+}
+
 function formatearFecha(fecha) {
-  if (!fecha) return 'N/A';
+  if (!fecha) return 'Fecha no disponible';
   
-  const date = fecha instanceof Date ? fecha : new Date(fecha);
-  return date.toLocaleDateString('es-CL', {
+  const fechaObj = fecha instanceof Date ? fecha : new Date(fecha);
+  return fechaObj.toLocaleDateString('es-CL', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -228,94 +328,27 @@ function formatearFecha(fecha) {
   });
 }
 
-// ========================================
-// FUNCIONES DE ACCIONES
-// ========================================
-
-// Marcar cotización como aceptada
-window.marcarAceptada = async function(codigo) {
+// Función para generar PDF
+async function generarPDF(cotizacionId) {
   try {
-    console.log(`✅ Marcando como aceptada: ${codigo}`);
+    console.log('📄 Generando PDF para cotización:', cotizacionId);
     
-    await db.collection('cotizaciones').doc(codigo).update({
-      estado: 'Aceptada',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    mostrarNotificacion('Cotización marcada como aceptada', 'success');
-    await cargarCotizaciones();
-    
-  } catch (error) {
-    console.error('❌ Error al marcar como aceptada:', error);
-    mostrarNotificacion('Error al actualizar el estado', 'error');
-  }
-};
-
-// Generar contrato (cambiar estado a contratada)
-window.generarContrato = async function(codigo) {
-  try {
-    console.log(`📄 Generando contrato: ${codigo}`);
-    
-    await db.collection('cotizaciones').doc(codigo).update({
-      estado: 'Contratada',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    mostrarNotificacion('Contrato generado exitosamente', 'success');
-    await cargarCotizaciones();
-    
-  } catch (error) {
-    console.error('❌ Error al generar contrato:', error);
-    mostrarNotificacion('Error al generar el contrato', 'error');
-  }
-};
-
-// Ver PDF de la cotización
-window.verPDF = function(codigo) {
-  try {
-    console.log(`👁️ Generando PDF para: ${codigo}`);
-    
-    const cotizacion = cotizaciones.find(c => (c.codigo || c.id) === codigo);
+    const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
     if (!cotizacion) {
-      mostrarNotificacion('Cotización no encontrada', 'error');
+      alert('Cotización no encontrada');
       return;
     }
     
-    generarPDF(cotizacion);
-    
-  } catch (error) {
-    console.error('❌ Error al generar PDF:', error);
-    mostrarNotificacion('Error al generar el PDF', 'error');
-  }
-};
-
-// Eliminar cotización
-window.eliminarCotizacion = function(codigo) {
-  mostrarModalConfirmacion(
-    'Eliminar Cotización',
-    `¿Estás seguro de que quieres eliminar la cotización ${codigo}? Esta acción no se puede deshacer.`,
-    'eliminar',
-    codigo
-  );
-};
-
-// ========================================
-// FUNCIONES AUXILIARES
-// ========================================
-
-// Generar PDF desde datos de Firestore (SOLUCIÓN CRÍTICA)
-function generarPDF(cotizacion) {
-  try {
-    console.log('📄 Generando PDF desde datos de Firestore...');
-    
-    // Verificar que html2pdf esté disponible
     if (typeof html2pdf === 'undefined') {
-      console.error('❌ html2pdf no está disponible');
-      alert('Error: La librería de generación de PDF no está cargada. Por favor, recarga la página.');
+      alert('Error: La librería de generación de PDF no está cargada.');
       return;
     }
     
-    // SOLUCIÓN: Crear un div temporal en memoria
+    if (typeof renderInvoice !== 'function') {
+      alert('Error: La función de renderizado no está disponible.');
+      return;
+    }
+    
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -325,39 +358,43 @@ function generarPDF(cotizacion) {
     tempDiv.style.padding = '20mm';
     tempDiv.style.zIndex = '-1';
     
-    // Inyectar el HTML de la factura en este div
-    tempDiv.innerHTML = renderInvoice(cotizacion);
+    tempDiv.innerHTML = renderInvoice({
+      nombre: cotizacion.nombre,
+      email: cotizacion.email,
+      rut: cotizacion.rut,
+      empresa: cotizacion.empresa,
+      moneda: cotizacion.moneda,
+      codigo: cotizacion.codigo,
+      fecha: cotizacion.fecha,
+      serviciosData: cotizacion.servicios,
+      total: cotizacion.total,
+      atendedor: cotizacion.atendido,
+      notasAdicionales: cotizacion.notas,
+      descuento: cotizacion.descuento
+    });
     
-    // Añadir el div temporal al body del documento
     document.body.appendChild(tempDiv);
     
-    // Configurar opciones de html2pdf
     const opt = {
       margin: 0,
-      filename: `${cotizacion.codigo || cotizacion.id}_cotizacion.pdf`,
+      filename: `${cotizacion.codigo}_cotizacion.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Llamar a html2pdf().from(tempDiv).save() y usar la promesa .then()
     html2pdf().set(opt).from(tempDiv).save()
       .then(() => {
         console.log('✅ PDF generado exitosamente');
-        
-        // Eliminar el div temporal del body después de que el PDF se haya generado
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
       })
       .catch((error) => {
         console.error('❌ Error al generar PDF:', error);
-        
-        // Limpiar en caso de error también
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
-        
         alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
       });
     
@@ -367,90 +404,41 @@ function generarPDF(cotizacion) {
   }
 }
 
-// Modal de confirmación
-function mostrarModalConfirmacion(titulo, mensaje, accion, codigo) {
-  if (!modalTitle || !modalMessage || !modalConfirm) {
-    console.error('❌ Elementos del modal no encontrados');
+// Función para ver detalles
+function verDetalles(cotizacionId) {
+  const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
+  if (!cotizacion) {
+    alert('Cotización no encontrada');
     return;
   }
   
-  modalTitle.textContent = titulo;
-  modalMessage.textContent = mensaje;
-  modalConfirm.textContent = accion === 'eliminar' ? 'Eliminar' : 'Confirmar';
-  modalConfirm.className = accion === 'eliminar' ? 'btn btn-danger' : 'btn btn-primary';
+  const detalles = `
+Código: ${cotizacion.codigo}
+Cliente: ${cotizacion.nombre}
+Email: ${cotizacion.email}
+RUT: ${cotizacion.rut}
+Empresa: ${cotizacion.empresa}
+Atendido por: ${cotizacion.atendido}
+Fecha: ${formatearFecha(cotizacion.fecha)}
+Total: $${(cotizacion.totalConDescuento || 0).toLocaleString()}
+Descuento: ${cotizacion.descuento || 0}%
+
+Servicios:
+${cotizacion.servicios?.map(s => `- ${s.nombre}: ${s.detalle}`).join('\n') || 'No hay servicios'}
+
+Notas: ${cotizacion.notas || 'Sin notas adicionales'}
+  `;
   
-  cotizacionSeleccionada = { accion, codigo };
-  confirmModal.style.display = 'flex';
+  alert(detalles);
 }
 
-// Cerrar modal
-function cerrarModal() {
-  if (confirmModal) {
-    confirmModal.style.display = 'none';
-  }
-  cotizacionSeleccionada = null;
+// Función para previsualizar cotización
+function previsualizarCotizacion(cotizacionId) {
+  console.log('👁️ Previsualizando cotización:', cotizacionId);
+  window.location.href = `preview.html?id=${cotizacionId}`;
 }
 
-// Ejecutar acción confirmada
-async function ejecutarAccionConfirmada() {
-  if (!cotizacionSeleccionada) return;
-  
-  const { accion, codigo } = cotizacionSeleccionada;
-  
-  try {
-    if (accion === 'eliminar') {
-      console.log(`🗑️ Eliminando cotización: ${codigo}`);
-      
-      await db.collection('cotizaciones').doc(codigo).delete();
-      
-      mostrarNotificacion('Cotización eliminada exitosamente', 'success');
-      await cargarCotizaciones();
-    }
-    
-    cerrarModal();
-    
-  } catch (error) {
-    console.error('❌ Error al ejecutar acción:', error);
-    mostrarNotificacion('Error al ejecutar la acción', 'error');
-  }
-}
-
-// Mostrar notificación
-function mostrarNotificacion(mensaje, tipo = 'info') {
-  // Crear elemento de notificación
-  const notificacion = document.createElement('div');
-  notificacion.className = `notificacion notificacion-${tipo}`;
-  notificacion.textContent = mensaje;
-  
-  // Añadir al DOM
-  document.body.appendChild(notificacion);
-  
-  // Mostrar con animación
-  setTimeout(() => {
-    notificacion.classList.add('mostrar');
-  }, 100);
-  
-  // Ocultar después de 3 segundos
-  setTimeout(() => {
-    notificacion.classList.remove('mostrar');
-    setTimeout(() => {
-      if (document.body.contains(notificacion)) {
-        document.body.removeChild(notificacion);
-      }
-    }, 300);
-  }, 3000);
-}
-
-// Función para cerrar sesión
-window.cerrarSesion = async function() {
-  try {
-    console.log('🚪 Cerrando sesión...');
-    
-    await firebase.auth().signOut();
-    window.location.href = 'login.html';
-    
-  } catch (error) {
-    console.error('❌ Error al cerrar sesión:', error);
-    alert('Error al cerrar sesión. Por favor, inténtalo de nuevo.');
-  }
-}; 
+// Hacer funciones disponibles globalmente
+window.generarPDF = generarPDF;
+window.verDetalles = verDetalles;
+window.previsualizarCotizacion = previsualizarCotizacion; 

@@ -60,7 +60,7 @@ export function renderInvoice({nombre, email, rut, empresa, moneda, codigo, fech
             tipoCobroTexto = '<div style="font-size:0.85em;color:#888;">Total directo</div>';
           }
           return `<tr>
-            <td>${s.categoria}</td>
+            <td>${s.nombre}</td>
             <td>${s.detalle}</td>
             <td>${s.modalidad || '-'}</td>
             <td>${cantidadValor}${tipoCobroTexto}</td>

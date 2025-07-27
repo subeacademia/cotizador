@@ -1,377 +1,390 @@
-// Importaciones
+// Configuración de Firebase
 import { renderInvoice } from '../templates/invoice-template.js';
-import { db } from './firebase-config.js';
 
 // Variables globales
-let form, serviciosDetalle, invoice, btnDescargarPDF, btnEmitirPDF;
+let codigoActual = 1;
 
-// Configuración de servicios disponibles
-const servicios = [
-  { id: 'charlas', nombre: 'Charlas', desc: 'Presentaciones orales' },
-  { id: 'capacitaciones', nombre: 'Capacitaciones', desc: 'Talleres prácticos' },
-  { id: 'certificaciones', nombre: 'Certificaciones', desc: 'Programas con diploma' },
-  { id: 'consultorias', nombre: 'Consultorías', desc: 'Diagnóstico y plan de acción' },
-  { id: 'mentorias', nombre: 'Mentorías', desc: 'Acompañamiento a largo plazo' },
-  { id: 'asesorias', nombre: 'Asesorías de IA', desc: 'Soporte en proyectos de IA' }
-];
+// ===== FUNCIONES DE AUTENTICACIÓN =====
 
-// ========================================
-// FUNCIONES DEL FORMULARIO DINÁMICO
-// ========================================
-
-// Función para generar código único de cotización
-function getNextCodigo() {
-  let last = localStorage.getItem('subeia_codigo');
-  if (!last) last = 0;
-  last = parseInt(last) + 1;
-  localStorage.setItem('subeia_codigo', last);
-  return `SUBEIA-${String(last).padStart(6, '0')}`;
+// Función para mostrar resultado
+function mostrarResultado(mensaje, tipo = 'info') {
+  const resultDiv = document.getElementById('result');
+  if (resultDiv) {
+    resultDiv.innerHTML = mensaje;
+    resultDiv.className = `result ${tipo}`;
+    resultDiv.style.display = 'block';
+  }
 }
 
-// Función para renderizar los detalles de servicios seleccionados
-function renderServiciosDetalle() {
-  console.log('🔄 renderServiciosDetalle ejecutada');
+// Función para mostrar resultado de login
+function mostrarResultadoLogin(mensaje, tipo = 'info') {
+  const resultDiv = document.getElementById('login-result');
+  if (resultDiv) {
+    resultDiv.innerHTML = mensaje;
+    resultDiv.className = `result ${tipo}`;
+    resultDiv.style.display = 'block';
+  }
+}
+
+// Función para manejar el login
+async function manejarLogin(event) {
+  event.preventDefault();
   
-  if (!serviciosDetalle) {
-    console.error('❌ Elemento serviciosDetalle no encontrado');
+  console.log('🔐 Procesando login...');
+  
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  
+  // Validar campos
+  if (!email || !password) {
+    mostrarResultadoLogin('Por favor, completa todos los campos.', 'error');
     return;
   }
   
-  // Limpiar el contenedor
-  serviciosDetalle.innerHTML = '';
+  mostrarResultadoLogin('Iniciando sesión...', 'info');
   
-  // Obtener servicios seleccionados
-  const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
-  const seleccionados = Array.from(checkboxes).map(cb => cb.value);
+  // Mostrar estado de carga
+  const loginButton = event.target.querySelector('button[type="submit"]');
+  if (loginButton) {
+    loginButton.disabled = true;
+    loginButton.innerHTML = 'Iniciando Sesión...';
+  }
   
-  console.log('📋 Servicios seleccionados:', seleccionados);
-  
-  // Crear bloques de detalle para cada servicio seleccionado
-  seleccionados.forEach(servicio => {
-    const s = servicios.find(x => x.nombre === servicio);
-    if (!s) {
-      console.warn(`⚠️ Servicio no encontrado: ${servicio}`);
-      return;
+  try {
+    console.log('🔥 Intentando autenticación con Firebase...');
+    
+    // Verificar que Firebase esté disponible
+    if (!window.auth) {
+      throw new Error('Firebase no está disponible');
     }
     
-    console.log(`🏗️ Creando detalles para: ${s.nombre}`);
+    // Usar la nueva API de Firebase
+    const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+    const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
     
-    const div = document.createElement('div');
-    div.className = 'servicio-detalle';
-    div.innerHTML = `
-      <h3>${s.nombre} <span style="font-size:0.9em;color:#00FFF0;">${s.desc}</span></h3>
-      <label>Detalle:<textarea name="detalle_${s.id}" required></textarea></label>
-      <label>Modalidad:
-        <select name="modalidad_${s.id}" required>
+    console.log('✅ Autenticación exitosa:', userCredential.user.email);
+    
+    mostrarResultadoLogin('✅ Login exitoso!', 'success');
+    
+    // Configurar UI para usuario autenticado
+    setTimeout(() => {
+      configurarUIUsuarioAutenticado(userCredential.user);
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ Error de autenticación:', error);
+    
+    let errorMessage = 'Credenciales incorrectas.';
+    
+    if (error.code) {
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = 'No existe una cuenta con este email.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Contraseña incorrecta.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Email inválido.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'Esta cuenta ha sido deshabilitada.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Demasiados intentos fallidos. Inténtalo más tarde.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Error de conexión. Verifica tu internet.';
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Credenciales inválidas.';
+          break;
+        default:
+          errorMessage = `Error de autenticación: ${error.code}`;
+      }
+    } else {
+      errorMessage = error.message || 'Error desconocido';
+    }
+    
+    mostrarResultadoLogin(`❌ Error: ${errorMessage}`, 'error');
+    
+    // Restaurar botón
+    if (loginButton) {
+      loginButton.disabled = false;
+      loginButton.innerHTML = 'Iniciar Sesión';
+    }
+  }
+}
+
+// Función para configurar UI cuando el usuario está autenticado
+function configurarUIUsuarioAutenticado(user) {
+  console.log('👤 Configurando UI para usuario autenticado:', user.email);
+  
+  // Mostrar información del usuario
+  const userEmailElement = document.getElementById('user-email');
+  if (userEmailElement) {
+    userEmailElement.textContent = `Usuario: ${user.email}`;
+  }
+  
+  const userInfoElement = document.getElementById('user-info');
+  if (userInfoElement) {
+    userInfoElement.style.display = 'block';
+  }
+  
+  // Ocultar login y mostrar cotizador
+  const loginSection = document.getElementById('login-section');
+  const cotizadorSection = document.getElementById('cotizador-section');
+  
+  if (loginSection) {
+    loginSection.style.display = 'none';
+    console.log('✅ Sección de login ocultada');
+  }
+  
+  if (cotizadorSection) {
+    cotizadorSection.style.display = 'block';
+    console.log('✅ Sección del cotizador mostrada');
+  }
+}
+
+// Función para cerrar sesión
+async function cerrarSesion() {
+  console.log('🚪 Cerrando sesión...');
+  
+  try {
+    if (!window.auth) {
+      throw new Error('Firebase no está disponible');
+    }
+    
+    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+    await signOut(window.auth);
+    
+    console.log('✅ Sesión cerrada exitosamente');
+    
+    // Configurar UI para usuario no autenticado
+    configurarUIUsuarioNoAutenticado();
+  } catch (error) {
+    console.error('❌ Error al cerrar sesión:', error);
+    alert('Error al cerrar sesión. Por favor, inténtalo de nuevo.');
+  }
+}
+
+// Función para configurar UI cuando el usuario no está autenticado
+function configurarUIUsuarioNoAutenticado() {
+  console.log('👤 Configurando UI para usuario no autenticado');
+  
+  // Ocultar información del usuario
+  const userInfoElement = document.getElementById('user-info');
+  if (userInfoElement) {
+    userInfoElement.style.display = 'none';
+  }
+  
+  // Mostrar login y ocultar cotizador
+  const loginSection = document.getElementById('login-section');
+  const cotizadorSection = document.getElementById('cotizador-section');
+  
+  if (loginSection) {
+    loginSection.style.display = 'block';
+    console.log('✅ Sección de login mostrada');
+  }
+  
+  if (cotizadorSection) {
+    cotizadorSection.style.display = 'none';
+    console.log('✅ Sección del cotizador ocultada');
+  }
+  
+  // Limpiar formulario de login
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.reset();
+  }
+  
+  // Limpiar mensajes
+  const loginResult = document.getElementById('login-result');
+  if (loginResult) {
+    loginResult.style.display = 'none';
+  }
+}
+
+// Función para ir al admin
+function irAlAdmin() {
+  window.location.href = 'admin.html';
+}
+
+// ===== FUNCIONES DEL COTIZADOR =====
+
+// Función para generar código único
+function generarCodigo() {
+  const codigo = `SUBEIA-${String(codigoActual).padStart(6, '0')}`;
+  codigoActual++;
+  return codigo;
+}
+
+// Función para renderizar detalles de servicios
+function renderizarDetalles() {
+  const detalleDiv = document.getElementById('servicios-detalle');
+  if (!detalleDiv) return;
+  
+  detalleDiv.innerHTML = '';
+  
+  const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
+  
+  checkboxes.forEach((checkbox, index) => {
+    const servicioDiv = document.createElement('div');
+    servicioDiv.className = 'servicio-detalle';
+    servicioDiv.innerHTML = `
+      <h3>${checkbox.value}</h3>
+      <div class="form-group">
+        <label>Detalle del servicio *</label>
+        <textarea name="detalle_${index}" required placeholder="Describe el servicio..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Modalidad *</label>
+        <select name="modalidad_${index}" required>
+          <option value="">Selecciona...</option>
           <option value="Presencial">Presencial</option>
           <option value="Online">Online</option>
           <option value="Semipresencial">Semipresencial</option>
         </select>
-      </label>
-      <label>Cantidad de alumnos:<input type="number" name="alumnos_${s.id}" min="1" value="1" required></label>
-      <div class="servicio-cobro-tipo">
-        <label><input type="radio" name="cobro_tipo_${s.id}" value="sesion" checked> Por sesión</label>
-        <label><input type="radio" name="cobro_tipo_${s.id}" value="alumno"> Por alumno</label>
-        <label><input type="radio" name="cobro_tipo_${s.id}" value="directo"> Total directo</label>
       </div>
-      <div class="servicio-campo-cobro campo-sesion active">
-        <label>Cantidad de sesiones:<input type="number" name="sesiones_${s.id}" min="1" value="1" required></label>
-        <label>Valor unitario por sesión:<input type="number" name="valor_sesion_${s.id}" min="0" step="0.01" required></label>
+      <div class="form-group">
+        <label>Cantidad de alumnos *</label>
+        <input type="number" name="alumnos_${index}" min="1" value="1" required>
       </div>
-      <div class="servicio-campo-cobro campo-alumno">
-        <label>Valor unitario por alumno:<input type="number" name="valor_alumno_${s.id}" min="0" step="0.01" required></label>
+      <div class="form-group">
+        <label>Tipo de cobro *</label>
+        <div class="radio-group">
+          <input type="radio" name="cobro_tipo_${index}" value="sesion" checked>
+          <label>Por sesión</label>
+          <input type="radio" name="cobro_tipo_${index}" value="alumno">
+          <label>Por alumno</label>
+          <input type="radio" name="cobro_tipo_${index}" value="directo">
+          <label>Total directo</label>
+        </div>
       </div>
-      <div class="servicio-campo-cobro campo-directo">
-        <label>Total directo:<input type="number" name="total_directo_${s.id}" min="0" step="0.01" required></label>
+      <div class="campo-cobro campo-sesion active" id="campo_sesion_${index}">
+        <div class="form-group">
+          <label>Cantidad de sesiones *</label>
+          <input type="number" name="sesiones_${index}" min="1" value="1" required>
+        </div>
+        <div class="form-group">
+          <label>Valor unitario por sesión *</label>
+          <input type="number" name="valor_sesion_${index}" min="0" step="0.01" required>
+        </div>
       </div>
-      <div class="subtotal" id="subtotal_${s.id}">Subtotal: 0</div>
+      <div class="campo-cobro campo-alumno" id="campo_alumno_${index}">
+        <div class="form-group">
+          <label>Valor unitario por alumno *</label>
+          <input type="number" name="valor_alumno_${index}" min="0" step="0.01" required>
+        </div>
+      </div>
+      <div class="campo-cobro campo-directo" id="campo_directo_${index}">
+        <div class="form-group">
+          <label>Total directo *</label>
+          <input type="number" name="total_directo_${index}" min="0" step="0.01" required>
+        </div>
+      </div>
+      <div class="subtotal" id="subtotal_${index}">Subtotal: 0</div>
     `;
     
-    serviciosDetalle.appendChild(div);
+    detalleDiv.appendChild(servicioDiv);
     
-    // PUNTO CLAVE: Llamar a una función separada que se encargue de registrar los event listeners
-    addEventListenersToDetails(div, s.id);
+    // Agregar event listeners
+    addEventListenersToDetails(servicioDiv, index);
     
     // Calcular subtotal inicial
-    calcularSubtotal(s.id);
+    calcularSubtotal(index);
   });
 }
 
-// PUNTO CLAVE: Función separada para agregar event listeners a los detalles
-function addEventListenersToDetails(serviceDiv, serviceId) {
-  console.log(`🔗 Agregando event listeners para servicio: ${serviceId}`);
-  
-  // Configurar event listeners para el tipo de cobro
-  const radios = serviceDiv.querySelectorAll(`input[name="cobro_tipo_${serviceId}"]`);
-  const campoSesion = serviceDiv.querySelector('.campo-sesion');
-  const campoAlumno = serviceDiv.querySelector('.campo-alumno');
-  const campoDirecto = serviceDiv.querySelector('.campo-directo');
-  
+// Función auxiliar para agregar event listeners a los detalles
+function addEventListenersToDetails(servicioDiv, index) {
+  // Event listeners para el tipo de cobro
+  const radios = servicioDiv.querySelectorAll(`input[name="cobro_tipo_${index}"]`);
   radios.forEach(radio => {
     radio.addEventListener('change', (e) => {
-      console.log(`💰 Tipo de cobro cambiado a: ${e.target.value} para ${serviceId}`);
+      // Ocultar todos los campos y remover required
+      servicioDiv.querySelectorAll('.campo-cobro').forEach(campo => {
+        campo.classList.remove('active');
+        // Remover required de campos ocultos
+        const inputs = campo.querySelectorAll('input[required], select[required], textarea[required]');
+        inputs.forEach(input => {
+          input.removeAttribute('required');
+          input.setAttribute('data-was-required', 'true');
+        });
+      });
       
-      // Ocultar todos los campos
-      campoSesion.classList.remove('active');
-      campoAlumno.classList.remove('active');
-      campoDirecto.classList.remove('active');
+      // Mostrar el campo correspondiente y agregar required
+      let campoActivo;
+      if (e.target.value === 'sesion') {
+        campoActivo = servicioDiv.querySelector(`#campo_sesion_${index}`);
+      } else if (e.target.value === 'alumno') {
+        campoActivo = servicioDiv.querySelector(`#campo_alumno_${index}`);
+      } else if (e.target.value === 'directo') {
+        campoActivo = servicioDiv.querySelector(`#campo_directo_${index}`);
+      }
       
-      // Mostrar el campo correspondiente
-      if (e.target.value === 'sesion') campoSesion.classList.add('active');
-      if (e.target.value === 'alumno') campoAlumno.classList.add('active');
-      if (e.target.value === 'directo') campoDirecto.classList.add('active');
+      if (campoActivo) {
+        campoActivo.classList.add('active');
+        // Agregar required a campos visibles
+        const inputs = campoActivo.querySelectorAll('input[data-was-required], select[data-was-required], textarea[data-was-required]');
+        inputs.forEach(input => {
+          input.setAttribute('required', 'required');
+        });
+      }
       
-      // Recalcular subtotal
-      calcularSubtotal(serviceId);
+      calcularSubtotal(index);
     });
   });
   
-  // Configurar event listeners para todos los inputs y selects
-  serviceDiv.querySelectorAll('input, textarea, select').forEach(input => {
-    input.addEventListener('input', () => {
-      console.log(`📝 Input cambiado: ${input.name}`);
-      calcularSubtotal(serviceId);
-    });
-    input.addEventListener('change', () => {
-      console.log(`📝 Input cambiado: ${input.name}`);
-      calcularSubtotal(serviceId);
-    });
+  // Event listeners para inputs
+  servicioDiv.querySelectorAll('input, textarea, select').forEach(input => {
+    input.addEventListener('input', () => calcularSubtotal(index));
+    input.addEventListener('change', () => calcularSubtotal(index));
   });
 }
 
-// Función para calcular el subtotal de un servicio específico
-function calcularSubtotal(id) {
-  console.log(`🧮 Calculando subtotal para: ${id}`);
+// Función para calcular subtotal
+function calcularSubtotal(index) {
+  const tipo = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
+  const subtotalDiv = document.getElementById(`subtotal_${index}`);
   
-  const tipo = document.querySelector(`input[name="cobro_tipo_${id}"]:checked`)?.value;
+  if (!subtotalDiv) return;
+  
   let subtotal = 0;
   
   if (tipo === 'sesion') {
-    const sesiones = Number(document.querySelector(`input[name="sesiones_${id}"]`)?.value || 0);
-    const valorSesion = Number(document.querySelector(`input[name="valor_sesion_${id}"]`)?.value || 0);
+    const sesiones = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
+    const valorSesion = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
     subtotal = sesiones * valorSesion;
-    console.log(`📊 Sesión: ${sesiones} x ${valorSesion} = ${subtotal}`);
   } else if (tipo === 'alumno') {
-    const alumnos = Number(document.querySelector(`input[name="alumnos_${id}"]`)?.value || 0);
-    const valorAlumno = Number(document.querySelector(`input[name="valor_alumno_${id}"]`)?.value || 0);
+    const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
+    const valorAlumno = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
     subtotal = alumnos * valorAlumno;
-    console.log(`📊 Alumno: ${alumnos} x ${valorAlumno} = ${subtotal}`);
   } else if (tipo === 'directo') {
-    subtotal = Number(document.querySelector(`input[name="total_directo_${id}"]`)?.value || 0);
-    console.log(`📊 Directo: ${subtotal}`);
+    subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
   }
   
-  // Actualizar el subtotal en la interfaz
-  const subtotalElement = document.getElementById(`subtotal_${id}`);
-  if (subtotalElement) {
-    subtotalElement.textContent = `Subtotal: ${subtotal.toLocaleString()}`;
-    console.log(`✅ Subtotal actualizado para ${id}: ${subtotal.toLocaleString()}`);
-  } else {
-    console.warn(`⚠️ Elemento subtotal_${id} no encontrado`);
-  }
+  subtotalDiv.textContent = `Subtotal: ${subtotal.toLocaleString()}`;
 }
 
-// ========================================
-// FLUJO DE GUARDAR Y GENERAR PDF
-// ========================================
-
-// Función para validar el formulario
-function validarFormulario() {
-  console.log('🔍 Validando formulario...');
-  
-  const camposRequeridos = [
-    { id: 'nombre', nombre: 'Nombre completo' },
-    { id: 'email', nombre: 'Email' },
-    { id: 'rut', nombre: 'RUT' },
-    { id: 'empresa', nombre: 'Empresa' },
-    { id: 'moneda', nombre: 'Moneda' },
-    { id: 'atendedor', nombre: 'Atendido por' }
-  ];
-  
-  for (const campo of camposRequeridos) {
-    const elemento = document.getElementById(campo.id);
-    if (!elemento || !elemento.value.trim()) {
-      alert(`❌ Por favor, completa el campo "${campo.nombre}".`);
-      if (elemento) elemento.focus();
-      return false;
-    }
-  }
-  
-  // Validar que al menos un servicio esté seleccionado
-  const serviciosSeleccionados = document.querySelectorAll('input[name="servicios"]:checked');
-  if (serviciosSeleccionados.length === 0) {
-    alert('❌ Por favor, selecciona al menos un servicio.');
-    return false;
-  }
-  
-  // Validar que los detalles de servicios estén completos
-  const serviciosDetalle = document.querySelectorAll('.servicio-detalle');
-  for (const servicio of serviciosDetalle) {
-    const detalle = servicio.querySelector('textarea');
-    const modalidad = servicio.querySelector('select');
-    const alumnos = servicio.querySelector('input[type="number"]');
-    
-    if (!detalle || !detalle.value.trim()) {
-      alert('❌ Por favor, completa el detalle de todos los servicios seleccionados.');
-      if (detalle) detalle.focus();
-      return false;
-    }
-    
-    if (!modalidad || !modalidad.value) {
-      alert('❌ Por favor, selecciona la modalidad de todos los servicios.');
-      if (modalidad) modalidad.focus();
-      return false;
-    }
-    
-    if (!alumnos || !alumnos.value || alumnos.value < 1) {
-      alert('❌ Por favor, ingresa una cantidad válida de alumnos.');
-      if (alumnos) alumnos.focus();
-      return false;
-    }
-  }
-  
-  console.log('✅ Formulario válido');
-  return true;
-}
-
-// Función para recopilar todos los datos del formulario
-function recopilarDatosFormulario() {
-  console.log('📋 Recopilando datos del formulario...');
-  
-  // Datos básicos del cliente
-  const nombre = document.getElementById('nombre').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const rut = document.getElementById('rut').value.trim();
-  const empresa = document.getElementById('empresa').value.trim();
-  const moneda = document.getElementById('moneda').value;
-  const atendedor = document.getElementById('atendedor').value;
-  const notasAdicionales = document.getElementById('notas_adicionales').value.trim();
-  const descuento = parseFloat(document.getElementById('descuento').value || '0');
-  
-  // Generar código único y fecha
-  const codigo = getNextCodigo();
-  const fecha = new Date();
-  
-  // Recopilar datos de servicios
-  const serviciosSeleccionados = Array.from(document.querySelectorAll('input[name="servicios"]:checked')).map(cb => cb.value);
-  const serviciosData = [];
-  let total = 0;
-  
-  serviciosSeleccionados.forEach(servicio => {
-    const s = servicios.find(x => x.nombre === servicio);
-    if (!s) return;
-    
-    const detalle = document.querySelector(`textarea[name="detalle_${s.id}"]`)?.value.trim() || '';
-    const modalidad = document.querySelector(`select[name="modalidad_${s.id}"]`)?.value || '';
-    const alumnos = Number(document.querySelector(`input[name="alumnos_${s.id}"]`)?.value || 0);
-    const tipoCobro = document.querySelector(`input[name="cobro_tipo_${s.id}"]:checked`)?.value || 'sesion';
-    
-    let valorUnitario = 0;
-    let cantidad = 0;
-    let totalDirecto = 0;
-    let subtotal = 0;
-    
-    // Calcular según el tipo de cobro
-    if (tipoCobro === 'sesion') {
-      cantidad = Number(document.querySelector(`input[name="sesiones_${s.id}"]`)?.value || 0);
-      valorUnitario = Number(document.querySelector(`input[name="valor_sesion_${s.id}"]`)?.value || 0);
-      totalDirecto = cantidad * valorUnitario;
-    } else if (tipoCobro === 'alumno') {
-      cantidad = alumnos;
-      valorUnitario = Number(document.querySelector(`input[name="valor_alumno_${s.id}"]`)?.value || 0);
-      totalDirecto = cantidad * valorUnitario;
-    } else if (tipoCobro === 'directo') {
-      totalDirecto = Number(document.querySelector(`input[name="total_directo_${s.id}"]`)?.value || 0);
-    }
-    
-    subtotal = totalDirecto;
-    total += subtotal;
-    
-    serviciosData.push({
-      categoria: s.nombre,
-      detalle,
-      modalidad,
-      alumnos,
-      tipoCobro,
-      cantidad,
-      valorUnitario: valorUnitario > 0 ? valorUnitario : '-',
-      totalDirecto: totalDirecto > 0 ? totalDirecto : '-',
-      subtotal
-    });
-  });
-  
-  // Estructura de datos completa
-  const datosCotizacion = {
-    // Datos de primer nivel
-    codigo,
-    fecha: fecha.toLocaleDateString('es-CL'), // Para la plantilla
-    fechaTimestamp: fecha, // Para Firestore
-    estado: 'Emitida',
-    
-    // Datos del cliente
-    nombre,
-    email,
-    rut,
-    empresa,
-    moneda,
-    atendedor,
-    
-    // Datos de servicios y totales
-    serviciosData,
-    total,
-    descuento,
-    notasAdicionales
-  };
-  
-  console.log('📊 Datos recopilados:', datosCotizacion);
-  return datosCotizacion;
-}
-
-// Función para guardar en Firestore
-async function guardarEnFirestore(datosCotizacion) {
-  console.log('💾 Guardando en Firestore...');
-  
-  try {
-    const cotizacionData = {
-      ...datosCotizacion,
-      fecha: datosCotizacion.fechaTimestamp, // Usar timestamp para Firestore
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
-    // Remover campo fechaTimestamp ya que no lo necesitamos en Firestore
-    delete cotizacionData.fechaTimestamp;
-    
-    // Guardar en Firestore usando el código como ID del documento
-    await db.collection('cotizaciones').doc(datosCotizacion.codigo).set(cotizacionData);
-    
-    console.log('✅ Cotización guardada exitosamente en Firestore:', datosCotizacion.codigo);
-    return true;
-  } catch (error) {
-    console.error('❌ Error al guardar en Firestore:', error);
-    throw new Error('Error al guardar la cotización en la base de datos. Por favor, inténtalo de nuevo.');
-  }
-}
-
-// Función para generar PDF (SOLUCIÓN CRÍTICA)
-function generarPDF(datosCotizacion) {
+// Función para generar PDF
+function generarPDF(datos) {
   console.log('📄 Generando PDF...');
-  
-  // Verificar que html2pdf esté disponible
+  mostrarResultado('📄 Generando PDF...', 'info');
+
   if (typeof html2pdf === 'undefined') {
     console.error('❌ html2pdf no está disponible');
-    alert('Error: La librería de generación de PDF no está cargada. Por favor, recarga la página.');
+    mostrarResultado('Error: La librería de generación de PDF no está cargada.', 'error');
     return;
   }
-  
-  // Verificar que renderInvoice esté disponible
+
   if (typeof renderInvoice !== 'function') {
     console.error('❌ renderInvoice no está disponible');
-    alert('Error: La función de renderizado no está disponible. Por favor, recarga la página.');
+    mostrarResultado('Error: La función de renderizado no está disponible.', 'error');
     return;
   }
-  
+
   try {
-    // SOLUCIÓN: Crear un div temporal en memoria
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
@@ -380,178 +393,371 @@ function generarPDF(datosCotizacion) {
     tempDiv.style.backgroundColor = 'white';
     tempDiv.style.padding = '20mm';
     tempDiv.style.zIndex = '-1';
-    
-    // Inyectar el HTML de la factura en este div
-    tempDiv.innerHTML = renderInvoice(datosCotizacion);
-    
-    // Añadir el div temporal al body del documento
+
+    tempDiv.innerHTML = renderInvoice({
+      nombre: datos.nombre,
+      email: datos.email,
+      rut: datos.rut,
+      empresa: datos.empresa,
+      moneda: datos.moneda,
+      codigo: datos.codigo,
+      fecha: datos.fecha,
+      serviciosData: datos.servicios,
+      total: datos.total,
+      atendedor: datos.atendido,
+      notasAdicionales: datos.notas,
+      descuento: datos.descuento
+    });
+
     document.body.appendChild(tempDiv);
-    
-    console.log('🎨 HTML renderizado en div temporal, generando PDF...');
-    
-    // Configurar opciones de html2pdf
+
     const opt = {
       margin: 0,
-      filename: `${datosCotizacion.codigo}_cotizacion.pdf`,
+      filename: `${datos.codigo}_cotizacion.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    
-    // Llamar a html2pdf().from(tempDiv).save() y usar la promesa .then()
+
     html2pdf().set(opt).from(tempDiv).save()
       .then(() => {
-        console.log('✅ PDF generado y descargado exitosamente');
-        
-        // Eliminar el div temporal del body después de que el PDF se haya generado
+        console.log('✅ PDF generado exitosamente');
+        mostrarResultado(`✅ PDF generado: ${datos.codigo}_cotizacion.pdf`, 'success');
+
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
       })
       .catch((error) => {
         console.error('❌ Error al generar PDF:', error);
-        
-        // Limpiar en caso de error también
         if (document.body.contains(tempDiv)) {
           document.body.removeChild(tempDiv);
         }
-        
-        alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+        mostrarResultado('Error al generar el PDF. Por favor, inténtalo de nuevo.', 'error');
       });
-    
+
   } catch (error) {
     console.error('❌ Error al generar PDF:', error);
-    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    mostrarResultado('Error al generar el PDF. Por favor, inténtalo de nuevo.', 'error');
   }
+}
+
+// Función para guardar en Firestore
+async function guardarEnFirestore(datos) {
+  try {
+    console.log('💾 Guardando en Firestore...');
+    
+    const cotizacionData = {
+      ...datos,
+      fecha: new Date(),
+      createdAt: new Date(),
+      creadoPor: window.auth.currentUser ? window.auth.currentUser.email : 'usuario_anonimo'
+    };
+    
+    // Usar la nueva API de Firestore
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    await setDoc(doc(window.db, 'cotizaciones', datos.codigo), cotizacionData);
+    
+    console.log('✅ Datos guardados en Firestore exitosamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Error guardando en Firestore:', error);
+    throw error;
+  }
+}
+
+// Función para recopilar datos del formulario
+function recopilarDatosFormulario() {
+  console.log('📝 Iniciando recopilación de datos del formulario...');
+  
+  const nombre = document.getElementById('nombre').value.trim();
+  const email = document.getElementById('email-cliente').value.trim();
+  const rut = document.getElementById('rut').value.trim();
+  const empresa = document.getElementById('empresa').value.trim();
+  const moneda = document.getElementById('moneda').value;
+  const descuento = parseFloat(document.getElementById('descuento').value || '0');
+  const atendido = document.getElementById('atendedor').value;
+  const notas = document.getElementById('notas').value.trim();
+
+  console.log('📋 Datos básicos:', { nombre, email, rut, empresa, moneda, descuento, atendido });
+
+  // Validar campos requeridos
+  if (!nombre || !email || !rut || !empresa || !atendido) {
+    throw new Error('Por favor, completa todos los campos requeridos.');
+  }
+
+  // Recopilar servicios
+  const checkboxes = document.querySelectorAll('input[name="servicios"]:checked');
+  console.log(`🔍 Servicios seleccionados: ${checkboxes.length}`);
+  
+  if (checkboxes.length === 0) {
+    throw new Error('Por favor, selecciona al menos un servicio.');
+  }
+
+  const servicios = [];
+  let total = 0;
+
+  checkboxes.forEach((checkbox, index) => {
+    console.log(`📦 Procesando servicio ${index + 1}: ${checkbox.value}`);
+    
+    const detalle = document.querySelector(`textarea[name="detalle_${index}"]`)?.value.trim();
+    const modalidad = document.querySelector(`select[name="modalidad_${index}"]`)?.value;
+    const alumnos = Number(document.querySelector(`input[name="alumnos_${index}"]`)?.value || 0);
+    const tipoCobro = document.querySelector(`input[name="cobro_tipo_${index}"]:checked`)?.value;
+
+    console.log(`📊 Datos del servicio:`, { detalle, modalidad, alumnos, tipoCobro });
+
+    if (!detalle || !modalidad || alumnos <= 0 || !tipoCobro) {
+      throw new Error(`Por favor, completa todos los datos del servicio: ${checkbox.value}`);
+    }
+
+    let cantidad = 0;
+    let valorUnitario = 0;
+    let subtotal = 0;
+    let tipoCobroTexto = '';
+    let cantidadValor = '';
+
+    if (tipoCobro === 'sesion') {
+      cantidad = Number(document.querySelector(`input[name="sesiones_${index}"]`)?.value || 0);
+      valorUnitario = Number(document.querySelector(`input[name="valor_sesion_${index}"]`)?.value || 0);
+      subtotal = cantidad * valorUnitario;
+      tipoCobroTexto = 'Por sesión';
+      cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
+    } else if (tipoCobro === 'alumno') {
+      cantidad = alumnos;
+      valorUnitario = Number(document.querySelector(`input[name="valor_alumno_${index}"]`)?.value || 0);
+      subtotal = cantidad * valorUnitario;
+      tipoCobroTexto = 'Por alumno';
+      cantidadValor = `${cantidad} x ${valorUnitario.toLocaleString()}`;
+    } else if (tipoCobro === 'directo') {
+      subtotal = Number(document.querySelector(`input[name="total_directo_${index}"]`)?.value || 0);
+      tipoCobroTexto = 'Total directo';
+    }
+
+    console.log(`💰 Cálculos del servicio:`, { cantidad, valorUnitario, subtotal, tipoCobroTexto });
+
+    if (subtotal <= 0) {
+      throw new Error(`Por favor, ingresa un valor válido para el servicio: ${checkbox.value}`);
+    }
+
+    servicios.push({
+      nombre: checkbox.value,
+      detalle,
+      modalidad,
+      alumnos,
+      tipoCobro,
+      tipoCobroTexto,
+      cantidad,
+      valorUnitario,
+      cantidadValor,
+      subtotal
+    });
+
+    total += subtotal;
+  });
+
+  // Calcular descuento
+  const descuentoValor = total * (descuento / 100);
+  const totalConDescuento = total - descuentoValor;
+
+  console.log(`💵 Totales calculados:`, { total, descuento, descuentoValor, totalConDescuento });
+
+  // Crear objeto de datos
+  const datosCotizacion = {
+    codigo: generarCodigo(),
+    nombre,
+    email,
+    rut,
+    empresa,
+    moneda,
+    atendido,
+    servicios,
+    total,
+    descuento,
+    descuentoValor,
+    totalConDescuento,
+    notas,
+    fecha: new Date().toLocaleDateString('es-CL'),
+    fechaTimestamp: new Date()
+  };
+
+  console.log('✅ Datos del formulario recopilados exitosamente:', datosCotizacion);
+  return datosCotizacion;
 }
 
 // Función principal para guardar y generar cotización
 async function guardarYGenerarCotizacion(event) {
-  console.log('🚀 Iniciando proceso de guardar y generar cotización...');
-  
-  // Prevenir comportamiento por defecto
-  event.preventDefault();
-  
+  // No necesitamos preventDefault() para eventos click
+  console.log('🚀 Iniciando proceso de guardado y generación de PDF...');
+  console.log('🔍 Evento recibido:', event.type);
+  console.log('🔍 Elemento que disparó el evento:', event.target);
+
+  // Verificar que el usuario esté autenticado
+  if (!window.auth.currentUser) {
+    mostrarResultado('❌ Debes iniciar sesión para generar cotizaciones', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('descargar-pdf');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Procesando...';
+  }
+
   try {
-    // 1. Validar formulario
-    if (!validarFormulario()) {
-      return;
+    // SOLUCIÓN AGRESIVA: Remover required de TODOS los campos temporalmente
+    console.log('🧹 Removiendo required de TODOS los campos temporalmente...');
+    const todosLosCamposRequired = document.querySelectorAll('input[required], select[required], textarea[required]');
+    console.log(`🔍 Encontrados ${todosLosCamposRequired.length} campos con required`);
+    
+    todosLosCamposRequired.forEach(campo => {
+      console.log(`🚫 Removiendo required de: ${campo.name}`);
+      campo.removeAttribute('required');
+      campo.setAttribute('data-temp-required', 'true');
+    });
+
+    // Verificar que no hay campos required antes de procesar
+    const camposRequiredRestantes = document.querySelectorAll('[required]');
+    if (camposRequiredRestantes.length > 0) {
+      console.log(`⚠️ Aún quedan ${camposRequiredRestantes.length} campos con required, forzando eliminación...`);
+      camposRequiredRestantes.forEach(campo => {
+        campo.removeAttribute('required');
+        campo.setAttribute('data-temp-required', 'true');
+      });
+    }
+
+    // Recopilar datos del formulario
+    console.log('📝 Recopilando datos del formulario...');
+    const datos = recopilarDatosFormulario();
+    console.log('✅ Datos recopilados:', datos);
+
+    // Guardar en Firestore
+    console.log('💾 Guardando en Firestore...');
+    await guardarEnFirestore(datos);
+    console.log('✅ Datos guardados exitosamente en Firestore');
+
+    mostrarResultado(`✅ Cotización ${datos.codigo} guardada exitosamente!`, 'success');
+
+    // Generar PDF
+    console.log('📄 Generando PDF...');
+    setTimeout(() => {
+      generarPDF(datos);
+    }, 1000);
+
+  } catch (error) {
+    console.error('❌ Error en el proceso:', error);
+    mostrarResultado(`❌ Error: ${error.message}`, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📄 Generar PDF';
     }
     
-    // 2. Recopilar datos del formulario
-    const datosCotizacion = recopilarDatosFormulario();
-    
-    // 3. Guardar en Firestore
-    await guardarEnFirestore(datosCotizacion);
-    
-    // 4. Mostrar mensaje de éxito
-    alert(`✅ ¡Cotización ${datosCotizacion.codigo} guardada exitosamente!`);
-    
-    // 5. Generar PDF solo si el guardado fue exitoso
-    generarPDF(datosCotizacion);
-    
-  } catch (error) {
-    console.error('❌ Error en guardarYGenerarCotizacion:', error);
-    alert(error.message || 'Error inesperado al procesar la cotización. Por favor, inténtalo de nuevo.');
+    // Restaurar required a campos que lo tenían temporalmente
+    console.log('🔄 Restaurando validación de campos...');
+    const camposTemporales = document.querySelectorAll('[data-temp-required]');
+    camposTemporales.forEach(campo => {
+      campo.setAttribute('required', 'required');
+      campo.removeAttribute('data-temp-required');
+    });
+    console.log(`✅ Restaurados ${camposTemporales.length} campos con required`);
   }
 }
 
-// ========================================
-// INICIALIZACIÓN Y EVENT LISTENERS
-// ========================================
+// Función para restaurar validación de campos
 
-// Función de inicialización
-function inicializar() {
+
+// Función para debug de campos
+function debugCampos() {
+  console.log('🔍 DEBUG: Estado de campos de cobro');
+  const camposCobro = document.querySelectorAll('.campo-cobro');
+  camposCobro.forEach((campo, index) => {
+    const esActivo = campo.classList.contains('active');
+    const camposRequired = campo.querySelectorAll('[required]');
+    console.log(`Campo ${index}: activo=${esActivo}, required=${camposRequired.length}`);
+    camposRequired.forEach(campo => {
+      console.log(`  - ${campo.name}: ${campo.value}`);
+    });
+  });
+}
+
+// ===== INICIALIZACIÓN =====
+
+document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Inicializando aplicación...');
-  
-  // Obtener referencias a elementos del DOM
-  form = document.getElementById('quote-form');
-  serviciosDetalle = document.getElementById('servicios-detalle');
-  invoice = document.getElementById('invoice');
-  btnDescargarPDF = document.getElementById('descargar-pdf');
-  btnEmitirPDF = document.getElementById('emitir-pdf');
-  
-  console.log('🔍 Elementos del DOM encontrados:', {
-    form: !!form,
-    serviciosDetalle: !!serviciosDetalle,
-    invoice: !!invoice,
-    btnDescargarPDF: !!btnDescargarPDF,
-    btnEmitirPDF: !!btnEmitirPDF
-  });
-  
-  // Verificar que los elementos críticos existan
-  if (!serviciosDetalle) {
-    console.error('❌ Elemento serviciosDetalle no encontrado');
-    return;
-  }
-  
-  if (!invoice) {
-    console.error('❌ Elemento invoice no encontrado');
-    return;
-  }
-  
-  // Configurar event listeners para checkboxes de servicios
-  const checkboxes = document.querySelectorAll('input[name="servicios"]');
-  console.log(`📋 Encontrados ${checkboxes.length} checkboxes de servicios`);
-  
-  checkboxes.forEach((checkbox, index) => {
-    console.log(`🔗 Configurando checkbox ${index + 1}: ${checkbox.id}`);
-    checkbox.addEventListener('change', (e) => {
-      console.log(`✅ Checkbox ${checkbox.id} cambiado: ${e.target.checked}`);
-      renderServiciosDetalle();
+
+  // Verificar estado de autenticación al cargar
+  if (window.auth) {
+    console.log('✅ Firebase auth disponible');
+    window.auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log('✅ Usuario autenticado:', user.email);
+        configurarUIUsuarioAutenticado(user);
+      } else {
+        console.log('❌ Usuario no autenticado');
+        configurarUIUsuarioNoAutenticado();
+      }
     });
-  });
-  
-  // Configurar event listener para el botón de generar PDF
-  if (btnDescargarPDF) {
-    console.log('🔗 Configurando botón descargar PDF');
-    btnDescargarPDF.addEventListener('click', guardarYGenerarCotizacion);
   } else {
-    console.error('❌ Botón descargar PDF no encontrado');
+    console.log('⚠️ Firebase aún no está cargado, esperando...');
+    // Esperar a que Firebase se cargue
+    const checkFirebase = setInterval(() => {
+      if (window.auth) {
+        clearInterval(checkFirebase);
+        console.log('✅ Firebase auth cargado, configurando listener...');
+        window.auth.onAuthStateChanged((user) => {
+          if (user) {
+            console.log('✅ Usuario autenticado:', user.email);
+            configurarUIUsuarioAutenticado(user);
+          } else {
+            console.log('❌ Usuario no autenticado');
+            configurarUIUsuarioNoAutenticado();
+          }
+        });
+      }
+    }, 100);
   }
-  
-  // Configurar event listener para el botón de emitir PDF (si existe)
-  if (btnEmitirPDF) {
-    console.log('🔗 Configurando botón emitir PDF');
-    btnEmitirPDF.addEventListener('click', guardarYGenerarCotizacion);
+
+  // Event listener para el formulario de login
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', manejarLogin);
+    console.log('✅ Event listener del formulario de login configurado');
+  } else {
+    console.error('❌ Formulario de login no encontrado');
   }
+
+  // Event listeners para checkboxes de servicios
+  const checkboxes = document.querySelectorAll('input[name="servicios"]');
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', renderizarDetalles);
+  });
+
+  // Event listener para el botón de generar PDF
+  const btnGenerarPDF = document.getElementById('descargar-pdf');
+  console.log('🔍 Buscando botón generar PDF...');
+  console.log('🔍 Botón encontrado:', btnGenerarPDF);
   
-  // Renderizar detalles de servicios iniciales (si hay alguno seleccionado)
-  renderServiciosDetalle();
-  
-  console.log('✅ Inicialización completada');
-}
-
-// GARANTIZAR LA EJECUCIÓN SEGURA DEL SCRIPT: Envolver toda la lógica en DOMContentLoaded
-document.addEventListener('DOMContentLoaded', inicializar);
-
-// ========================================
-// FUNCIONES AUXILIARES
-// ========================================
-
-// Función para mostrar previsualización (opcional)
-function mostrarPrevisualizacion() {
-  try {
-    if (!validarFormulario()) {
-      return;
-    }
-    
-    const datosCotizacion = recopilarDatosFormulario();
-    invoice.innerHTML = renderInvoice(datosCotizacion);
-    invoice.style.display = 'block';
-    
-    if (btnEmitirPDF) {
-      btnEmitirPDF.style.display = 'block';
-    }
-    
-    // Scroll hacia la previsualización
-    window.scrollTo({ 
-      top: document.getElementById('pdf-preview').offsetTop - 40, 
-      behavior: 'smooth' 
-    });
-    
-  } catch (error) {
-    console.error('❌ Error al mostrar previsualización:', error);
-    alert('Error al previsualizar la cotización. Revisa los datos e inténtalo de nuevo.');
+  if (btnGenerarPDF) {
+    btnGenerarPDF.addEventListener('click', guardarYGenerarCotizacion);
+    console.log('✅ Event listener del botón generar PDF configurado');
+    console.log('🔍 Botón ID:', btnGenerarPDF.id);
+    console.log('🔍 Botón texto:', btnGenerarPDF.textContent);
+  } else {
+    console.error('❌ Botón generar PDF no encontrado');
+    console.log('🔍 Elementos con ID que contienen "pdf":', document.querySelectorAll('[id*="pdf"]'));
   }
-} 
+
+  // Hacer disponibles las funciones globalmente
+  window.cerrarSesion = cerrarSesion;
+  window.irAlAdmin = irAlAdmin;
+  window.guardarYGenerarCotizacion = guardarYGenerarCotizacion;
+  
+  // Test manual - puedes ejecutar esto en la consola: window.testPDF()
+  window.testPDF = () => {
+    console.log('🧪 Test manual de PDF iniciado');
+    guardarYGenerarCotizacion({ type: 'test', target: document.getElementById('descargar-pdf') });
+  };
+
+  console.log('✅ Aplicación inicializada correctamente');
+}); 

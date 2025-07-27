@@ -3,151 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Administración | SUBE IA TECH</title>
+  <title>Panel de Administración - SUBE IA</title>
   <link rel="stylesheet" href="css/admin.css">
-  <link href="https://fonts.googleapis.com/css?family=Poppins:700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body style="display: none;">
   <div class="admin-container">
     <header class="admin-header">
       <div class="header-content">
-        <img src="assets/logo-blanco.png" alt="Logo SUBE IA TECH" class="logo">
-        <h1>Panel de Administración</h1>
+        <h1>📊 Panel de Administración</h1>
         <div class="header-actions">
-          <div id="user-info" class="user-info">
-            <!-- Información del usuario se mostrará aquí -->
-          </div>
-          <nav class="admin-nav">
-            <button onclick="cerrarSesion()" class="btn-logout">
-              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </button>
-            <a href="index.html" class="nav-link">
-              <i class="fas fa-arrow-left"></i> Volver al Cotizador
-            </a>
-          </nav>
+          <h2>SUBE IA TECH</h2>
+          <a href="index.html" class="btn btn-primary">Crear Nueva Cotización</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
         </div>
       </div>
+      <div id="user-info" class="user-info"></div>
     </header>
 
     <main class="admin-main">
-      <div class="admin-content">
-        <div class="admin-header-section">
-          <h2>Gestión de Cotizaciones</h2>
-          <div class="admin-stats">
-            <div class="stat-card">
-              <i class="fas fa-file-invoice"></i>
-              <div class="stat-info">
-                <span class="stat-number" id="total-cotizaciones">0</span>
-                <span class="stat-label">Total</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <i class="fas fa-clock"></i>
-              <div class="stat-info">
-                <span class="stat-number" id="cotizaciones-emitidas">0</span>
-                <span class="stat-label">Emitidas</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <i class="fas fa-check-circle"></i>
-              <div class="stat-info">
-                <span class="stat-number" id="cotizaciones-aceptadas">0</span>
-                <span class="stat-label">Aceptadas</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <i class="fas fa-file-contract"></i>
-              <div class="stat-info">
-                <span class="stat-number" id="cotizaciones-contratadas">0</span>
-                <span class="stat-label">Contratadas</span>
-              </div>
-            </div>
-          </div>
+      <div class="stats-section">
+        <div class="stat-card">
+          <h3>Total Cotizaciones</h3>
+          <p id="total-cotizaciones">0</p>
         </div>
+        <div class="stat-card">
+          <h3>Este Mes</h3>
+          <p id="cotizaciones-mes">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Valor Total</h3>
+          <p id="valor-total">$0</p>
+        </div>
+      </div>
 
-        <div class="table-container">
-          <div class="table-header">
-            <h3>Lista de Cotizaciones</h3>
-            <div class="table-actions">
-              <button id="refresh-btn" class="btn btn-secondary">
-                <i class="fas fa-sync-alt"></i> Actualizar
-              </button>
-              <select id="filter-estado" class="filter-select">
-                <option value="">Todos los estados</option>
-                <option value="Emitida">Emitidas</option>
-                <option value="Aceptada">Aceptadas</option>
-                <option value="Contratada">Contratadas</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="table-wrapper">
-            <table id="cotizaciones-table" class="admin-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Fecha</th>
-                  <th>Cliente</th>
-                  <th>Empresa</th>
-                  <th>Total con Descuento</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="cotizaciones-tbody">
-                <!-- Las cotizaciones se cargarán dinámicamente aquí -->
-              </tbody>
-            </table>
-          </div>
-          
-          <div id="loading" class="loading">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span>Cargando cotizaciones...</span>
-          </div>
-          
-          <div id="no-data" class="no-data" style="display: none;">
-            <i class="fas fa-inbox"></i>
-            <span>No hay cotizaciones disponibles</span>
-          </div>
+      <div class="filters-section">
+        <div class="search-group">
+          <label for="buscador">🔍 Buscar en tiempo real:</label>
+          <input type="text" id="buscador" placeholder="Buscar por código, nombre, empresa, email, atendido..." class="search-input">
+        </div>
+        <div class="filter-group">
+          <label for="filtro-fecha">Filtrar por fecha:</label>
+          <select id="filtro-fecha">
+            <option value="todos">Todos</option>
+            <option value="hoy">Hoy</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-atendedor">Filtrar por atendido:</label>
+          <select id="filtro-atendedor">
+            <option value="todos">Todos</option>
+            <option value="Rodrigo Carrillo">Rodrigo Carrillo</option>
+            <option value="Bruno Villalobos">Bruno Villalobos</option>
+            <option value="Mario Muñoz">Mario Muñoz</option>
+            <option value="Nicolás Valenzuela">Nicolás Valenzuela</option>
+            <option value="Ignacio Villarroel">Ignacio Villarroel</option>
+          </select>
+        </div>
+        <button id="aplicar-filtros" class="btn btn-filter">Aplicar Filtros</button>
+      </div>
+
+      <div class="cotizaciones-section">
+        <h2>📋 Lista de Cotizaciones</h2>
+        <div id="cotizaciones-list" class="cotizaciones-list">
+          <div class="loading">Cargando cotizaciones...</div>
         </div>
       </div>
     </main>
   </div>
 
-  <!-- Modal de confirmación -->
-  <div id="confirm-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modal-title">Confirmar acción</h3>
-        <button class="modal-close" id="modal-close">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p id="modal-message">¿Estás seguro de que deseas realizar esta acción?</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
-        <button class="btn btn-danger" id="modal-confirm">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <!-- Firebase -->
+  <script type="module">
+    // Importar Firebase usando módulos ES6
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+      authDomain: "cotizador-bba5a.firebaseapp.com",
+      projectId: "cotizador-bba5a",
+      storageBucket: "cotizador-bba5a.firebasestorage.app",
+      messagingSenderId: "372617480143",
+      appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+    };
+    
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // Hacer disponibles globalmente
+    window.auth = auth;
+    window.db = db;
+    
+    console.log('✅ Firebase inicializado correctamente en admin');
+  </script>
   
   <!-- html2pdf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- Guardián de autenticación -->
-  <script type="module" src="js/auth-guard.js"></script>
-  
-  <!-- Script de administración -->
+  <!-- Script del admin -->
   <script type="module" src="js/admin.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
 </body>
 </html> 

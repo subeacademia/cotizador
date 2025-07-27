@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Previsualización - Cotización SUBE IA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .preview-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #00B8D9;
+    }
+    
+    .actions {
+      text-align: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #00B8D9, #FF4EFF);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 0 10px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+    }
+    
+    .btn-success {
+      background: #28a745;
+    }
+    
+    .pdf-content {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 20px 0;
+      background: white;
+    }
+    
+    .pdf-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .pdf-header img {
+      height: 80px;
+      margin-bottom: 10px;
+    }
+    
+    .pdf-header h2 {
+      font-size: 2.2rem;
+      color: #23263A;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    
+    .info-empresa {
+      color: #23263A;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    
+    .gradient {
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, #00B8D9, #FF4EFF);
+      margin: 20px 0;
+    }
+    
+    .datos-cotizacion {
+      color: #23263A;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      margin: 15px 0;
+    }
+    
+    .pdf-body {
+      color: #23263A;
+    }
+    
+    .pdf-body h3 {
+      font-weight: bold;
+      margin: 20px 0 10px 0;
+    }
+    
+    .datos-cliente {
+      color: #23263A;
+      margin: 10px 0;
+    }
+    
+    .tabla-servicios {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    .tabla-servicios th,
+    .tabla-servicios td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    
+    .tabla-servicios th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    
+    .total-row {
+      text-align: right;
+      font-size: 1.2em;
+      margin: 10px 0;
+      color: #00B8D9;
+      font-weight: bold;
+    }
+    
+    .descuento-aplicado {
+      color: #FF4EFF;
+      font-weight: bold;
+      text-align: right;
+      margin: 10px 0;
+    }
+    
+    .validez {
+      color: #23263A;
+      margin: 10px 0;
+    }
+    
+    .atendido-por {
+      color: #23263A;
+      margin: 10px 0;
+    }
+    
+    .condiciones {
+      color: #23263A;
+      margin: 10px 0;
+      font-size: 0.9em;
+    }
+    
+    .notas-adicionales {
+      color: #FF4EFF;
+      margin: 10px 0;
+    }
+    
+    .footer {
+      color: #23263A;
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+    
+    .footer img {
+      height: 48px;
+      margin-top: 10px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+      color: #666;
+    }
+    
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <div class="header">
+      <h1>📄 Previsualización de Cotización</h1>
+      <p>Revisa la cotización antes de generar el PDF</p>
+    </div>
+    
+    <div id="loading" class="loading">
+      <p>🔄 Cargando cotización...</p>
+    </div>
+    
+    <div id="error" class="error" style="display: none;">
+      <p>❌ Error al cargar la cotización</p>
+    </div>
+    
+    <div id="preview-content" style="display: none;">
+      <div class="actions">
+        <button class="btn btn-success" onclick="imprimir()">
+          🖨️ Imprimir Cotización
+        </button>
+        <button class="btn btn-secondary" onclick="generarPDF()">
+          📄 Descargar PDF
+        </button>
+        <a href="admin.html" class="btn btn-secondary">
+          ⚙️ Volver al Admin
+        </a>
+      </div>
+      
+      <div id="pdf-content" class="pdf-content">
+        <!-- El contenido del PDF se insertará aquí -->
+      </div>
+    </div>
+  </div>
+
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Script de previsualización -->
+  <script type="module">
+    // Variables globales
+    let cotizacionId;
+    
+    // Función de inicialización
+    async function inicializar() {
+      // Obtener datos de la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      cotizacionId = urlParams.get('id');
+      
+      if (!cotizacionId) {
+        mostrarError('No se proporcionó ID de cotización');
+        return;
+      }
+      
+      // Cargar cotización
+      await cargarCotizacion();
+    }
+    
+    // Cargar cotización desde localStorage o sessionStorage
+    async function cargarCotizacion() {
+      try {
+        console.log('🔄 Iniciando carga de cotización...');
+        console.log('🔄 ID de cotización:', cotizacionId);
+        
+        // Intentar obtener de sessionStorage primero
+        let cotizacion = sessionStorage.getItem('cotizacion_temp');
+        console.log('🔄 Datos en sessionStorage:', cotizacion ? 'Sí' : 'No');
+        
+        if (cotizacion) {
+          cotizacion = JSON.parse(cotizacion);
+          console.log('🔄 Datos parseados:', cotizacion);
+          mostrarCotizacion(cotizacion);
+        } else {
+          console.log('🔄 No hay datos en sessionStorage, cargando desde Firestore...');
+          // Si no está en sessionStorage, intentar cargar desde Firestore
+          await cargarDesdeFirestore(cotizacionId);
+        }
+      } catch (error) {
+        console.error('Error al cargar cotización:', error);
+        mostrarError('Error al cargar la cotización: ' + error.message);
+      }
+    }
+    
+    async function cargarDesdeFirestore(id) {
+      // Importar Firebase dinámicamente
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+      const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyAuR2-zHQAkjbLABtIuBcSo9MgIlCGWusg",
+        authDomain: "cotizador-bba5a.firebaseapp.com",
+        projectId: "cotizador-bba5a",
+        storageBucket: "cotizador-bba5a.firebasestorage.app",
+        messagingSenderId: "372617480143",
+        appId: "1:372617480143:web:67bda8c05dbeebb6e6b4ba"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      
+      const docRef = doc(db, 'cotizaciones', id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const cotizacion = docSnap.data();
+        mostrarCotizacion(cotizacion);
+      } else {
+        mostrarError('Cotización no encontrada');
+      }
+    }
+    
+    async function mostrarCotizacion(datos) {
+      try {
+        console.log('📋 Mostrando cotización con datos:', datos);
+        
+        // Importar la plantilla
+        const { renderInvoice } = await import('./templates/invoice-template.js');
+        console.log('📋 Plantilla importada correctamente');
+        
+        // Preparar datos para la plantilla
+        const datosPlantilla = {
+          nombre: datos.nombre,
+          email: datos.email,
+          rut: datos.rut,
+          empresa: datos.empresa,
+          moneda: 'CLP',
+          codigo: datos.codigo,
+          fecha: datos.fecha,
+          serviciosData: datos.servicios,
+          total: datos.total,
+          atendedor: datos.atendido,
+          notasAdicionales: datos.notas,
+          descuento: datos.descuento
+        };
+        
+        console.log('📋 Datos preparados para plantilla:', datosPlantilla);
+        
+        // Generar HTML
+        const html = renderInvoice(datosPlantilla);
+        
+        // Mostrar contenido
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('preview-content').style.display = 'block';
+        document.getElementById('pdf-content').innerHTML = html;
+        
+        // Guardar datos para el PDF
+        window.cotizacionData = datosPlantilla;
+        console.log('💾 Datos guardados para PDF:', datosPlantilla);
+        
+      } catch (error) {
+        console.error('Error al mostrar cotización:', error);
+        mostrarError('Error al generar la previsualización: ' + error.message);
+      }
+    }
+    
+    function mostrarError(mensaje) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error').innerHTML = `<p>❌ ${mensaje}</p>`;
+    }
+    
+    // Funciones globales para los botones
+    window.generarPDF = async function() {
+      try {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '⏳ Generando PDF...';
+        
+        console.log('📄 Iniciando generación de PDF...');
+        console.log('📄 Datos disponibles:', window.cotizacionData);
+        
+        if (!window.cotizacionData) {
+          throw new Error('No hay datos de cotización disponibles');
+        }
+        
+        // Usar directamente el contenido del PDF que ya está renderizado
+        const pdfContent = document.getElementById('pdf-content');
+        if (!pdfContent) {
+          throw new Error('No se encontró el contenido del PDF');
+        }
+        
+        console.log('📄 Usando contenido existente del PDF');
+        
+        // Configuración simplificada de html2pdf
+        const opt = {
+          margin: 0.5,
+          filename: `cotizacion-${window.cotizacionData.codigo}.pdf`,
+          image: { type: 'jpeg', quality: 0.8 },
+          html2canvas: { 
+            scale: 1.5,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { 
+            unit: 'in', 
+            format: 'letter', 
+            orientation: 'portrait'
+          }
+        };
+        
+        console.log('📄 Configuración PDF:', opt);
+        
+        // Generar PDF directamente desde el contenido visible
+        await html2pdf().from(pdfContent).set(opt).save();
+        console.log('✅ PDF generado exitosamente');
+        
+        // Limpiar datos temporales
+        sessionStorage.removeItem('cotizacion_temp');
+        
+        // Redirigir al admin
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 2000);
+        
+      } catch (error) {
+        console.error('❌ Error al generar PDF:', error);
+        alert('Error al generar PDF: ' + error.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '📄 Descargar PDF';
+        }
+      }
+    };
+    
+    window.imprimir = function() {
+      console.log('🖨️ Iniciando impresión...');
+      
+      try {
+        // Ocultar elementos que no queremos imprimir
+        const actions = document.querySelector('.actions');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        
+        if (actions) actions.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+        if (error) error.style.display = 'none';
+        
+        // Aplicar estilos de impresión
+        const style = document.createElement('style');
+        style.textContent = `
+          @media print {
+            body { 
+              margin: 0; 
+              padding: 20px; 
+              background: white !important;
+              color: black !important;
+            }
+            .pdf-content {
+              border: none !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              background: white !important;
+            }
+            .pdf-header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #00B8D9;
+              padding-bottom: 20px;
+            }
+            .pdf-header img {
+              height: 80px;
+              margin-bottom: 10px;
+            }
+            .pdf-header h2 {
+              font-size: 2.2rem;
+              color: #23263A;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .pdf-body {
+              margin: 20px 0;
+              line-height: 1.6;
+            }
+            .datos-cotizacion {
+              color: #23263A;
+              font-weight: bold;
+              display: flex;
+              justify-content: space-between;
+              margin: 15px 0;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .datos-cliente {
+              color: #23263A;
+              margin: 10px 0;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .tabla-servicios {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+              font-size: 12px;
+            }
+            .tabla-servicios th, .tabla-servicios td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+            .tabla-servicios th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+            }
+            .total-row {
+              text-align: right;
+              font-size: 1.2em;
+              margin: 10px 0;
+              color: #00B8D9;
+              font-weight: bold;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 5px;
+            }
+            .gradient {
+              border: none;
+              height: 2px;
+              background: linear-gradient(90deg, #00B8D9, #FF4EFF);
+              margin: 20px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #ddd;
+              font-size: 12px;
+              color: #666;
+            }
+            .info-empresa {
+              color: #23263A;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .pdf-body h3 {
+              font-weight: bold;
+              margin: 20px 0 10px 0;
+              color: #23263A;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Imprimir
+        window.print();
+        
+        // Limpiar y restaurar después de imprimir
+        setTimeout(() => {
+          document.head.removeChild(style);
+          if (actions) actions.style.display = 'flex';
+          if (loading) loading.style.display = 'none';
+          if (error) error.style.display = 'none';
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Error al imprimir:', error);
+        alert('Error al imprimir: ' + error.message);
+      }
+    };
+    
+    // Inicializar la aplicación
+    inicializar();
+  </script>
+</body>
+</html> 
