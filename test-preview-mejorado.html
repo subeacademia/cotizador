@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test - Modal de Previsualización Mejorada</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .test-container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .test-button {
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .test-button:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(0, 255, 240, 0.25);
+    }
+  </style>
+</head>
+<body style="display: none;">
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <h1>🧪 Test - Modal de Previsualización Mejorada</h1>
+        <div class="header-actions">
+          <h2>SUBE IA TECH</h2>
+          <a href="contratos.html" class="btn btn-primary">Volver a Contratos</a>
+          <a href="admin.html" class="btn btn-secondary">Panel Admin</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <main class="admin-main">
+      <div class="test-container">
+        <h2>🧪 Prueba de Modal de Previsualización Mejorada</h2>
+        <p>Este test permite verificar que la nueva modal funcione correctamente con datos de ejemplo.</p>
+        
+        <div style="margin: 30px 0;">
+          <button class="test-button" onclick="testModalPrevisualizacion()">
+            👁️ Abrir Modal de Previsualización
+          </button>
+        </div>
+        
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px; text-align: left;">
+          <h3>📋 Datos de Prueba:</h3>
+          <ul>
+            <li><strong>Contrato:</strong> Contrato de Desarrollo Web</li>
+            <li><strong>Código:</strong> CON-2024-001</li>
+            <li><strong>Cliente:</strong> Juan Pérez</li>
+            <li><strong>Valor:</strong> $2,500,000</li>
+            <li><strong>Estado:</strong> Pendiente de Firma</li>
+            <li><strong>Firma Representante:</strong> ❌ Falta</li>
+            <li><strong>Firma Cliente:</strong> ⏳ Pendiente</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de Previsualización -->
+  <div id="modal-previsualizar" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3>👁️ Previsualizar Contrato</h3>
+        <button onclick="cerrarModalPrevisualizar()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Sección de Estado del Contrato -->
+        <div id="estado-contrato-seccion" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: rgba(255, 255, 255, 0.05);">
+          <h4 style="margin: 0 0 10px 0; color: var(--color-primary);">📊 Estado del Contrato</h4>
+          <div id="estado-contrato-info">
+            <!-- Se llenará dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Sección de Previsualización del Contrato -->
+        <div id="preview-contrato-seccion" style="margin-bottom: 20px;">
+          <h4 style="margin: 0 0 15px 0; color: var(--color-primary);">📄 Previsualización del Contrato</h4>
+          <div id="preview-contrato-content" style="background: white; border-radius: 8px; padding: 20px; max-height: 400px; overflow-y: auto; color: #333;">
+            <!-- El contenido del contrato se llenará dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Sección de Firmas -->
+        <div id="firmas-seccion" style="margin-bottom: 20px;">
+          <h4 style="margin: 0 0 15px 0; color: var(--color-primary);">✍️ Estado de Firmas</h4>
+          <div id="firmas-info" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <!-- Se llenará dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Sección de Acciones -->
+        <div id="acciones-seccion">
+          <h4 style="margin: 0 0 15px 0; color: var(--color-primary);">🔧 Acciones Disponibles</h4>
+          <div class="previsualizar-options">
+            <div class="option-card" onclick="agregarFirmaRepresentante()" id="btn-firma-representante">
+              <div class="option-icon">✍️</div>
+              <div class="option-content">
+                <h4>Firmar como Representante</h4>
+                <p>Agregar firma digital del representante legal</p>
+              </div>
+            </div>
+            
+            <div class="option-card" onclick="generarLinkFirmaCliente()" id="btn-link-cliente">
+              <div class="option-icon">🔗</div>
+              <div class="option-content">
+                <h4>Enviar al Cliente</h4>
+                <p>Generar link para que el cliente firme</p>
+              </div>
+            </div>
+            
+            <div class="option-card" onclick="generarPDF()">
+              <div class="option-icon">📄</div>
+              <div class="option-content">
+                <h4>Generar PDF</h4>
+                <p>Crear documento PDF del contrato</p>
+              </div>
+            </div>
+            
+            <div class="option-card" onclick="enviarPorEmail()" id="btn-enviar-email">
+              <div class="option-icon">📧</div>
+              <div class="option-content">
+                <h4>Enviar por Email</h4>
+                <p>Enviar contrato por correo electrónico</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="cerrarModalPrevisualizar()" class="btn btn-secondary">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Envío por Email -->
+  <div id="modal-email" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>📧 Enviar Contrato por Email</h3>
+        <button onclick="cerrarModalEmail()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="email-destinatario">Email del Destinatario:</label>
+          <input type="email" id="email-destinatario" placeholder="email@ejemplo.com" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="asunto-email">Asunto del Email:</label>
+          <input type="text" id="asunto-email" placeholder="Contrato - SUBE IA" value="Contrato - SUBE IA">
+        </div>
+        
+        <div class="form-group">
+          <label for="mensaje-email">Mensaje Personalizado:</label>
+          <textarea id="mensaje-email" placeholder="Estimado cliente, adjunto encontrará su contrato...">Estimado cliente,
+
+Adjunto encontrará su contrato de servicios.
+
+Saludos cordiales,
+Equipo SUBE IA</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="enviarEmailReal()" class="btn btn-primary">📧 Enviar Email</button>
+        <button onclick="cerrarModalEmail()" class="btn btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- EmailJS -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  
+  <!-- Firebase -->
+  <script type="module" src="js/firebase-config.js"></script>
+  
+  <!-- Script de auth guard -->
+  <script type="module" src="js/auth-guard.js"></script>
+  
+  <!-- Script de prueba -->
+  <script>
+    // Datos de prueba
+    const contratoPrueba = {
+      id: 'test-contrato-001',
+      tituloContrato: 'Contrato de Desarrollo Web',
+      codigoCotizacion: 'CON-2024-001',
+      estadoContrato: 'Pendiente de Firma',
+      fechaCreacionContrato: new Date(),
+      atendido: 'María González',
+      cliente: {
+        nombre: 'Juan Pérez',
+        email: 'juan.perez@empresa.com',
+        rut: '12.345.678-9',
+        empresa: 'Empresa ABC Ltda.'
+      },
+      total: 2500000,
+      totalConDescuento: 2500000,
+      descuento: 0,
+      descripcionServicios: 'Desarrollo de sitio web corporativo con las siguientes características:\n\n• Diseño responsivo\n• Panel de administración\n• Integración con redes sociales\n• SEO optimizado\n• Certificado SSL\n\nPlazo de entrega: 30 días hábiles',
+      terminosCondiciones: '1. El cliente deberá proporcionar todo el contenido necesario para el desarrollo.\n2. Se incluyen 3 revisiones del diseño.\n3. El pago se realizará 50% al inicio y 50% al finalizar.\n4. Se incluye soporte técnico por 3 meses después de la entrega.',
+      // Sin firmas para probar el estado "faltante"
+      firmaRepresentanteBase64: null,
+      firmaClienteBase64: null
+    };
+
+    // Función de prueba
+    function testModalPrevisualizacion() {
+      console.log('🧪 Iniciando prueba de modal de previsualización...');
+      
+      // Simular que contratoActual está disponible
+      window.contratoActual = contratoPrueba;
+      
+      // Llenar información del estado del contrato
+      llenarEstadoContrato();
+      
+      // Llenar previsualización del contrato
+      llenarPreviewContrato();
+      
+      // Llenar información de firmas
+      llenarEstadoFirmas();
+      
+      // Actualizar estado de botones
+      actualizarEstadoBotones();
+      
+      // Mostrar modal
+      document.getElementById('modal-previsualizar').style.display = 'flex';
+    }
+
+    // Funciones de la modal (copiadas del archivo principal)
+    function llenarEstadoContrato() {
+      const estadoInfo = document.getElementById('estado-contrato-info');
+      
+      const estadoHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <strong>Estado General:</strong>
+            <span class="estado-badge ${contratoPrueba.estadoContrato === 'Firmado' ? 'completo' : 'pendiente'}">
+              ${contratoPrueba.estadoContrato || 'Pendiente de Firma'}
+            </span>
+          </div>
+          <div>
+            <strong>Código:</strong> ${contratoPrueba.codigoCotizacion || 'Sin código'}
+          </div>
+          <div>
+            <strong>Cliente:</strong> ${contratoPrueba.cliente?.nombre || 'No especificado'}
+          </div>
+          <div>
+            <strong>Valor:</strong> $${(contratoPrueba.totalConDescuento || contratoPrueba.total || 0).toLocaleString()}
+          </div>
+        </div>
+      `;
+      
+      estadoInfo.innerHTML = estadoHTML;
+    }
+
+    function llenarPreviewContrato() {
+      const previewContent = document.getElementById('preview-contrato-content');
+      
+      // Generar contenido HTML del contrato para previsualización
+      const contenidoHTML = generarHTMLContrato(contratoPrueba);
+      previewContent.innerHTML = contenidoHTML;
+    }
+
+    function llenarEstadoFirmas() {
+      const firmasInfo = document.getElementById('firmas-info');
+      
+      const tieneFirmaRepresentante = !!contratoPrueba.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contratoPrueba.firmaClienteBase64;
+      
+      const firmasHTML = `
+        <div class="firma-status ${tieneFirmaRepresentante ? 'completa' : 'faltante'}">
+          <h5 style="margin: 0 0 10px 0;">Representante Legal</h5>
+          ${tieneFirmaRepresentante ? `
+            <img src="${contratoPrueba.firmaRepresentanteBase64}" alt="Firma del Representante" class="firma-imagen-preview">
+            <p style="margin: 5px 0;"><strong>${contratoPrueba.representanteLegal || contratoPrueba.atendido || 'No especificado'}</strong></p>
+            <p style="margin: 5px 0; font-size: 12px; color: #666;">${formatearFecha(contratoPrueba.fechaFirmaRepresentante)}</p>
+            <span class="estado-badge completo">✅ Firmado</span>
+          ` : `
+            <p style="margin: 10px 0; color: #666;">Firma pendiente</p>
+            <span class="estado-badge faltante">❌ Falta Firma</span>
+          `}
+        </div>
+        
+        <div class="firma-status ${tieneFirmaCliente ? 'completa' : 'pendiente'}">
+          <h5 style="margin: 0 0 10px 0;">Cliente</h5>
+          ${tieneFirmaCliente ? `
+            <img src="${contratoPrueba.firmaClienteBase64}" alt="Firma del Cliente" class="firma-imagen-preview">
+            <p style="margin: 5px 0;"><strong>${contratoPrueba.cliente?.nombre || 'No especificado'}</strong></p>
+            <p style="margin: 5px 0; font-size: 12px; color: #666;">${formatearFecha(contratoPrueba.fechaFirmaCliente)}</p>
+            <span class="estado-badge completo">✅ Firmado</span>
+          ` : `
+            <p style="margin: 10px 0; color: #666;">Esperando firma del cliente</p>
+            <span class="estado-badge pendiente">⏳ Pendiente</span>
+          `}
+        </div>
+      `;
+      
+      firmasInfo.innerHTML = firmasHTML;
+    }
+
+    function actualizarEstadoBotones() {
+      const btnFirmaRepresentante = document.getElementById('btn-firma-representante');
+      const btnLinkCliente = document.getElementById('btn-link-cliente');
+      const btnEnviarEmail = document.getElementById('btn-enviar-email');
+      
+      const tieneFirmaRepresentante = !!contratoPrueba.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contratoPrueba.firmaClienteBase64;
+      
+      // Botón de firma del representante
+      if (tieneFirmaRepresentante) {
+        btnFirmaRepresentante.classList.add('disabled');
+        btnFirmaRepresentante.onclick = null;
+      } else {
+        btnFirmaRepresentante.classList.remove('disabled');
+        btnFirmaRepresentante.onclick = agregarFirmaRepresentante;
+      }
+      
+      // Botón de envío al cliente
+      if (!tieneFirmaRepresentante) {
+        btnLinkCliente.classList.add('disabled');
+        btnLinkCliente.onclick = null;
+      } else {
+        btnLinkCliente.classList.remove('disabled');
+        btnLinkCliente.onclick = generarLinkFirmaCliente;
+      }
+      
+      // Botón de envío por email
+      if (!tieneFirmaRepresentante && !tieneFirmaCliente) {
+        btnEnviarEmail.classList.add('disabled');
+        btnEnviarEmail.onclick = null;
+      } else {
+        btnEnviarEmail.classList.remove('disabled');
+        btnEnviarEmail.onclick = enviarPorEmail;
+      }
+    }
+
+    // Funciones de acción
+    function agregarFirmaRepresentante() {
+      alert('🧪 Función de prueba: Agregar firma del representante');
+      console.log('✍️ Redirigiendo a firma del representante...');
+    }
+
+    function generarLinkFirmaCliente() {
+      alert('🧪 Función de prueba: Generar link para cliente');
+      console.log('🔗 Redirigiendo a generación de link para cliente...');
+    }
+
+    function enviarPorEmail() {
+      console.log('📧 Abriendo modal de envío por email...');
+      
+      // Llenar formulario con datos del cliente
+      const emailDestinatario = document.getElementById('email-destinatario');
+      const asuntoEmail = document.getElementById('asunto-email');
+      const mensajeEmail = document.getElementById('mensaje-email');
+      
+      emailDestinatario.value = contratoPrueba.cliente?.email || '';
+      
+      const tituloContrato = contratoPrueba.tituloContrato || contratoPrueba.codigoCotizacion || 'Contrato';
+      asuntoEmail.value = `${tituloContrato} - SUBE IA`;
+      
+      const nombreCliente = contratoPrueba.cliente?.nombre || 'Cliente';
+      const valorTotal = (contratoPrueba.totalConDescuento || contratoPrueba.total || 0).toLocaleString();
+      
+      mensajeEmail.value = `Estimado ${nombreCliente},
+
+Adjunto encontrará su contrato de servicios.
+
+Detalles del contrato:
+- Título: ${tituloContrato}
+- Valor: $${valorTotal}
+- Fecha de creación: ${formatearFecha(contratoPrueba.fechaCreacionContrato)}
+
+Saludos cordiales,
+Equipo SUBE IA`;
+      
+      // Mostrar modal de email
+      document.getElementById('modal-email').style.display = 'flex';
+    }
+
+    function cerrarModalEmail() {
+      document.getElementById('modal-email').style.display = 'none';
+    }
+
+    async function enviarEmailReal() {
+      const email = document.getElementById('email-destinatario').value.trim();
+      const asunto = document.getElementById('asunto-email').value.trim();
+      const mensaje = document.getElementById('mensaje-email').value.trim();
+      
+      if (!email) {
+        alert('Por favor, ingrese el email del destinatario.');
+        return;
+      }
+      
+      try {
+        console.log('📧 Enviando email con EmailJS...');
+        
+        // Inicializar EmailJS
+        emailjs.init('jlnRLQBC1jiIBM2bj');
+        
+        // Preparar datos para EmailJS
+        const templateParams = {
+          to_email: email,
+          to_name: contratoPrueba.cliente?.nombre || 'Cliente',
+          subject: asunto,
+          message: mensaje,
+          contract_code: contratoPrueba.codigoCotizacion || 'Sin código',
+          contract_value: `$${(contratoPrueba.totalConDescuento || contratoPrueba.total || 0).toLocaleString()}`,
+          contract_date: formatearFecha(contratoPrueba.fechaCreacionContrato)
+        };
+        
+        // Enviar email usando EmailJS
+        const response = await emailjs.send(
+          'service_d0m6iqn',
+          'template_im1t8rq',
+          templateParams
+        );
+        
+        console.log('✅ Email enviado exitosamente:', response);
+        alert('✅ Email enviado exitosamente al cliente.');
+        
+        // Cerrar modal
+        cerrarModalEmail();
+        
+      } catch (error) {
+        console.error('❌ Error al enviar email:', error);
+        alert('❌ Error al enviar email: ' + error.message);
+      }
+    }
+
+    function generarPDF() {
+      console.log('📄 Generando PDF desde modal...');
+      alert('🧪 Función de prueba: Generar PDF');
+      // Cerrar modal
+      cerrarModalPrevisualizar();
+    }
+
+    function cerrarModalPrevisualizar() {
+      document.getElementById('modal-previsualizar').style.display = 'none';
+    }
+
+    // Funciones de utilidad
+    function formatearFecha(fecha) {
+      if (!fecha) return 'Fecha no disponible';
+      
+      let fechaObj;
+      
+      // Si es un timestamp de Firestore
+      if (fecha && typeof fecha === 'object' && fecha.toDate) {
+        fechaObj = fecha.toDate();
+      }
+      // Si es una fecha válida
+      else if (fecha instanceof Date) {
+        fechaObj = fecha;
+      }
+      // Si es un string o número, intentar crear Date
+      else {
+        fechaObj = new Date(fecha);
+      }
+      
+      // Verificar que la fecha sea válida
+      if (isNaN(fechaObj.getTime())) {
+        return 'Fecha no disponible';
+      }
+      
+      return fechaObj.toLocaleDateString('es-CL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function generarHTMLContrato(contratoData) {
+      const {
+        tituloContrato = 'Contrato de Servicios',
+        codigoCotizacion = 'Sin código',
+        estadoContrato = 'Pendiente de Firma',
+        fechaCreacionContrato,
+        atendido = 'No especificado',
+        fechaInicio,
+        fechaFin,
+        cliente = {},
+        totalConDescuento,
+        total,
+        descuento = 0,
+        descripcionServicios,
+        terminosCondiciones
+      } = contratoData;
+
+      const { nombre = 'No especificado', email = 'No especificado', rut = 'No especificado', empresa = 'No especificada' } = cliente;
+
+      // Calcular total
+      const totalFinal = totalConDescuento || total || 0;
+
+      return `
+      <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #00B8D9; padding-bottom: 20px;">
+        <h1 style="font-size:2.5rem;color:#23263A;font-weight:bold;margin:0;">SUBE IA TECH</h1>
+        <h2 style="font-size:1.8rem;color:#23263A;font-weight:600;margin:10px 0;">${tituloContrato}</h2>
+        <div style="color:#23263A;font-weight:bold;margin:10px 0;">
+          <strong>Sube IA Tech Ltda.</strong><br>
+          Fco. Mansilla 1007, Castro, Chile<br>
+          RUT: 77.994.591-K<br>
+          contacto@subeia.tech
+        </div>
+        <div style="color:#23263A;font-weight:bold;margin-top: 15px;">
+          <span style="margin: 0 15px;"><b>Código:</b> <span style="font-family:monospace;color:#00B8D9;font-size:1.1em;">${codigoCotizacion}</span></span>
+          <span style="margin: 0 15px;"><b>Estado:</b> <span style="color:#FF4EFF;">${estadoContrato}</span></span>
+        </div>
+      </div>
+
+      <div style="color:#23263A;font-size:14px;line-height:1.6;">
+        
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Información General</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border-left:4px solid #00B8D9;">
+              <strong>Fecha de Creación:</strong><br>
+              <span style="color:#64748b;">${formatearFecha(fechaCreacionContrato)}</span>
+            </div>
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border-left:4px solid #00B8D9;">
+              <strong>Atendido por:</strong><br>
+              <span style="color:#64748b;">${atendido}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">👤 Información del Cliente</h3>
+          <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+              <div><strong>Nombre:</strong> ${nombre}</div>
+              <div><strong>Email:</strong> ${email}</div>
+              <div><strong>RUT:</strong> ${rut}</div>
+              <div><strong>Empresa:</strong> ${empresa}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">💰 Información Financiera</h3>
+          <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong>Valor Total del Contrato:</strong>
+                ${descuento > 0 ? `<br><span style="color:#64748b;text-decoration:line-through;">$${(total || 0).toLocaleString()}</span>` : ''}
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:1.2em;font-weight:bold;color:#00B8D9;">$${totalFinal.toLocaleString()}</span>
+                ${descuento > 0 ? `<br><span style="color:#FF4EFF;font-weight:bold;">Con ${descuento}% descuento</span>` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${descripcionServicios ? `
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📝 Descripción de Servicios</h3>
+          <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
+            ${descripcionServicios}
+          </div>
+        </div>
+        ` : ''}
+
+        ${terminosCondiciones ? `
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Términos y Condiciones</h3>
+          <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
+            ${terminosCondiciones}
+          </div>
+        </div>
+        ` : ''}
+
+      </div>
+
+      <div style="margin-top: 40px;text-align: center;border-top: 3px solid #00B8D9;padding-top: 20px;color:#23263A;">
+        <div style="font-weight:bold;margin-bottom: 10px;">Sube IA Tech Ltda.</div>
+        <div style="font-size:0.9em;color:#64748b;margin-bottom: 15px;">
+          contacto@subeia.tech &mdash; Fco. Mansilla 1007, Castro, Chile
+        </div>
+        <div style="font-size:0.8em;color:#64748b;">
+          Documento generado el ${new Date().toLocaleDateString('es-CL')}
+        </div>
+      </div>
+      `;
+    }
+
+    // Hacer funciones disponibles globalmente
+    window.testModalPrevisualizacion = testModalPrevisualizacion;
+    window.cerrarModalPrevisualizar = cerrarModalPrevisualizar;
+    window.cerrarModalEmail = cerrarModalEmail;
+    window.agregarFirmaRepresentante = agregarFirmaRepresentante;
+    window.generarLinkFirmaCliente = generarLinkFirmaCliente;
+    window.enviarPorEmail = enviarPorEmail;
+    window.enviarEmailReal = enviarEmailReal;
+    window.generarPDF = generarPDF;
+
+    console.log('✅ Test de modal de previsualización cargado');
+  </script>
+</body>
+</html> 

@@ -281,6 +281,7 @@ Equipo SUBE IA</textarea>
             <div class="enviar-acciones">
               <button onclick="generarLinkFirma()" class="btn btn-primary">🔗 Generar Link de Firma</button>
               <button onclick="enviarEmailFirma()" class="btn btn-success" id="btn-enviar-email" disabled>📧 Enviar Email</button>
+              <button onclick="enviarEmailManual()" class="btn btn-warning" id="btn-enviar-manual" disabled>📮 Enviar Manual</button>
               <button onclick="volverContratos()" class="btn btn-secondary">↩️ Volver a Contratos</button>
             </div>
           </div>
@@ -317,6 +318,9 @@ Equipo SUBE IA</textarea>
     
     console.log('✅ Firebase inicializado correctamente en enviar firma');
   </script>
+  
+  <!-- EmailJS -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   
   <!-- Script de enviar firma -->
   <script type="module" src="js/enviar-firma.js"></script>

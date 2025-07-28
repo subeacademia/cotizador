@@ -255,443 +255,327 @@ function renderizarPreview() {
   previewContent.innerHTML = contenidoHTML;
 }
 
-// ===== FUNCIONES DE ACCIÓN =====
-function imprimirContrato() {
-  console.log('🖨️ Imprimiendo contrato...');
-  window.print();
-}
-
-function descargarPDF() {
-  console.log('📥 Descargando PDF...');
+// ===== FUNCIONES DE PREVISUALIZACIÓN MEJORADAS =====
+function previsualizarContrato() {
+  console.log('👁️ Abriendo modal de previsualización mejorada...');
   
-  // Verificar que contratoActual esté disponible
   if (!contratoActual) {
-    console.error('❌ Datos del contrato no disponibles');
-    alert('Error: No se pueden obtener los datos del contrato.');
+    alert('Error: No hay contrato cargado.');
     return;
   }
   
-  console.log('📋 Datos del contrato disponibles:', contratoActual);
+  // Llenar información del estado del contrato
+  llenarEstadoContrato();
   
-  // Debug: Mostrar información básica
-  alert(`Debug: Generando PDF\nTítulo: ${contratoActual.tituloContrato}\nCódigo: ${contratoActual.codigoCotizacion}\nCliente: ${contratoActual.cliente?.nombre}\nTotal: $${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}`);
+  // Llenar previsualización del contrato
+  llenarPreviewContrato();
+  
+  // Llenar información de firmas
+  llenarEstadoFirmas();
+  
+  // Actualizar estado de botones
+  actualizarEstadoBotones();
+  
+  // Mostrar modal
+  document.getElementById('modal-previsualizar').style.display = 'flex';
+}
+
+function llenarEstadoContrato() {
+  const estadoInfo = document.getElementById('estado-contrato-info');
+  
+  const estadoHTML = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+      <div>
+        <strong>Estado General:</strong>
+        <span class="estado-badge ${contratoActual.estadoContrato === 'Firmado' ? 'completo' : 'pendiente'}">
+          ${contratoActual.estadoContrato || 'Pendiente de Firma'}
+        </span>
+      </div>
+      <div>
+        <strong>Código:</strong> ${contratoActual.codigoCotizacion || 'Sin código'}
+      </div>
+      <div>
+        <strong>Cliente:</strong> ${contratoActual.cliente?.nombre || 'No especificado'}
+      </div>
+      <div>
+        <strong>Valor:</strong> $${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}
+      </div>
+    </div>
+  `;
+  
+  estadoInfo.innerHTML = estadoHTML;
+}
+
+function llenarPreviewContrato() {
+  const previewContent = document.getElementById('preview-contrato-content');
+  
+  // Generar el HTML del contrato completo
+  const contenidoHTML = generarHTMLContrato(contratoActual);
+  
+  // Agregar sección de firmas al preview
+  const firmasHTML = generarHTMLFirmas();
+  
+  // Mostrar el contenido del contrato con firmas
+  const previewHTML = `
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <div style="max-height: 500px; overflow-y: auto;">
+        ${contenidoHTML}
+        ${firmasHTML}
+      </div>
+    </div>
+    <div style="margin-top: 15px; text-align: center;">
+      <button onclick="generarPDFPreview()" class="btn btn-primary" style="margin-right: 10px;">
+        📄 Generar PDF
+      </button>
+      <button onclick="descargarPDFPreview()" class="btn btn-success">
+        📥 Descargar PDF
+      </button>
+    </div>
+  `;
+  
+  previewContent.innerHTML = previewHTML;
+}
+
+function llenarEstadoFirmas() {
+  const firmasInfo = document.getElementById('firmas-info');
+  
+  const tieneFirmaRepresentante = !!contratoActual.firmaRepresentanteBase64;
+  const tieneFirmaCliente = !!contratoActual.firmaClienteBase64;
+  
+  const firmasHTML = `
+    <div class="firma-status ${tieneFirmaRepresentante ? 'completa' : 'faltante'}">
+      <h5 style="margin: 0 0 10px 0;">Representante Legal</h5>
+      ${tieneFirmaRepresentante ? `
+        <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" class="firma-imagen-preview">
+        <p style="margin: 5px 0;"><strong>${contratoActual.representanteLegal || contratoActual.atendido || 'No especificado'}</strong></p>
+        <p style="margin: 5px 0; font-size: 12px; color: #666;">${formatearFecha(contratoActual.fechaFirmaRepresentante)}</p>
+        <span class="estado-badge completo">✅ Firmado</span>
+      ` : `
+        <p style="margin: 10px 0; color: #666;">Firma pendiente</p>
+        <span class="estado-badge faltante">❌ Falta Firma</span>
+      `}
+    </div>
+    
+    <div class="firma-status ${tieneFirmaCliente ? 'completa' : 'pendiente'}">
+      <h5 style="margin: 0 0 10px 0;">Cliente</h5>
+      ${tieneFirmaCliente ? `
+        <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" class="firma-imagen-preview">
+        <p style="margin: 5px 0;"><strong>${contratoActual.cliente?.nombre || 'No especificado'}</strong></p>
+        <p style="margin: 5px 0; font-size: 12px; color: #666;">${formatearFecha(contratoActual.fechaFirmaCliente)}</p>
+        <span class="estado-badge completo">✅ Firmado</span>
+      ` : `
+        <p style="margin: 10px 0; color: #666;">Esperando firma del cliente</p>
+        <span class="estado-badge pendiente">⏳ Pendiente</span>
+      `}
+    </div>
+  `;
+  
+  firmasInfo.innerHTML = firmasHTML;
+}
+
+function actualizarEstadoBotones() {
+  const btnFirmaRepresentante = document.getElementById('btn-firma-representante');
+  const btnLinkCliente = document.getElementById('btn-link-cliente');
+  const btnEnviarEmail = document.getElementById('btn-enviar-email');
+  
+  const tieneFirmaRepresentante = !!contratoActual.firmaRepresentanteBase64;
+  const tieneFirmaCliente = !!contratoActual.firmaClienteBase64;
+  
+  // Botón de firma del representante
+  if (tieneFirmaRepresentante) {
+    btnFirmaRepresentante.classList.add('disabled');
+    btnFirmaRepresentante.onclick = null;
+  } else {
+    btnFirmaRepresentante.classList.remove('disabled');
+    btnFirmaRepresentante.onclick = agregarFirmaRepresentante;
+  }
+  
+  // Botón de envío al cliente
+  if (!tieneFirmaRepresentante) {
+    btnLinkCliente.classList.add('disabled');
+    btnLinkCliente.onclick = null;
+  } else {
+    btnLinkCliente.classList.remove('disabled');
+    btnLinkCliente.onclick = generarLinkFirmaCliente;
+  }
+  
+  // Botón de envío por email
+  if (!tieneFirmaRepresentante && !tieneFirmaCliente) {
+    btnEnviarEmail.classList.add('disabled');
+    btnEnviarEmail.onclick = null;
+  } else {
+    btnEnviarEmail.classList.remove('disabled');
+    btnEnviarEmail.onclick = enviarPorEmail;
+  }
+}
+
+// ===== NUEVAS FUNCIONES DE ACCIÓN =====
+function agregarFirmaRepresentante() {
+  console.log('✍️ Redirigiendo a firma del representante...');
+  if (!contratoActual) {
+    alert('Error: No hay contrato cargado.');
+    return;
+  }
+  
+  // Redirigir a la página de firma
+  window.location.href = `firmar-contrato.html?id=${contratoActual.id}`;
+}
+
+function generarLinkFirmaCliente() {
+  console.log('🔗 Redirigiendo a generación de link para cliente...');
+  if (!contratoActual) {
+    alert('Error: No hay contrato cargado.');
+    return;
+  }
+  
+  // Redirigir a la página de envío de firma
+  window.location.href = `enviar-firma.html?id=${contratoActual.id}`;
+}
+
+function enviarPorEmail() {
+  console.log('📧 Abriendo modal de envío por email...');
+  
+  if (!contratoActual) {
+    alert('Error: No hay contrato cargado.');
+    return;
+  }
+  
+  // Llenar formulario con datos del cliente
+  const emailDestinatario = document.getElementById('email-destinatario');
+  const asuntoEmail = document.getElementById('asunto-email');
+  const mensajeEmail = document.getElementById('mensaje-email');
+  
+  emailDestinatario.value = contratoActual.cliente?.email || '';
+  
+  const tituloContrato = contratoActual.tituloContrato || contratoActual.codigoCotizacion || 'Contrato';
+  asuntoEmail.value = `${tituloContrato} - SUBE IA`;
+  
+  const nombreCliente = contratoActual.cliente?.nombre || 'Cliente';
+  const valorTotal = (contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString();
+  
+  mensajeEmail.value = `Estimado ${nombreCliente},
+
+Adjunto encontrará su contrato de servicios.
+
+Detalles del contrato:
+- Título: ${tituloContrato}
+- Valor: $${valorTotal}
+- Fecha de creación: ${formatearFecha(contratoActual.fechaCreacionContrato)}
+
+Saludos cordiales,
+Equipo SUBE IA`;
+  
+  // Mostrar modal de email
+  document.getElementById('modal-email').style.display = 'flex';
+}
+
+function cerrarModalEmail() {
+  document.getElementById('modal-email').style.display = 'none';
+}
+
+async function enviarEmailReal() {
+  const email = document.getElementById('email-destinatario').value.trim();
+  const asunto = document.getElementById('asunto-email').value.trim();
+  const mensaje = document.getElementById('mensaje-email').value.trim();
+  
+  if (!email) {
+    alert('Por favor, ingrese el email del destinatario.');
+    return;
+  }
   
   try {
-    // Método alternativo: Usar window.print() con contenido específico
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    console.log('📧 Enviando email con EmailJS...');
     
-         // Generar contenido HTML para imprimir
-     const printContent = `
-       <!DOCTYPE html>
-       <html>
-       <head>
-         <title>${contratoActual.estadoContrato === 'Firmado' ? 'Contrato' : 'Pre-Contrato'} - ${contratoActual.codigoCotizacion}</title>
-         <style>
-           @page {
-             size: A4;
-             margin: 2cm;
-           }
-           body {
-             font-family: 'Times New Roman', serif;
-             margin: 0;
-             padding: 0;
-             color: #000;
-             background: white;
-             font-size: 12pt;
-             line-height: 1.5;
-           }
-           .page {
-             max-width: 21cm;
-             margin: 0 auto;
-             padding: 2cm;
-             background: white;
-           }
-           .header {
-             text-align: center;
-             border-bottom: 3px solid #000;
-             padding-bottom: 20px;
-             margin-bottom: 30px;
-           }
-           .logo {
-             font-size: 28pt;
-             font-weight: bold;
-             margin: 0;
-             color: #000;
-           }
-           .document-title {
-             font-size: 18pt;
-             font-weight: bold;
-             margin: 15px 0;
-             color: #000;
-           }
-           .company-info {
-             font-size: 11pt;
-             margin: 10px 0;
-             color: #000;
-           }
-           .contract-details {
-             display: flex;
-             justify-content: space-between;
-             margin: 15px 0;
-             font-size: 11pt;
-           }
-           .section {
-             margin-bottom: 25px;
-           }
-           .section-title {
-             font-size: 14pt;
-             font-weight: bold;
-             margin-bottom: 15px;
-             color: #000;
-             border-bottom: 1px solid #000;
-             padding-bottom: 5px;
-           }
-           .info-table {
-             width: 100%;
-             border-collapse: collapse;
-             margin-bottom: 15px;
-           }
-           .info-table td {
-             padding: 8px;
-             border: 1px solid #ccc;
-             vertical-align: top;
-           }
-           .info-table td:first-child {
-             font-weight: bold;
-             width: 30%;
-             background: #f9f9f9;
-           }
-           .services-section {
-             margin: 20px 0;
-           }
-           .service-item {
-             margin-bottom: 15px;
-             padding: 10px;
-             border: 1px solid #ccc;
-             background: #f9f9f9;
-           }
-           .service-title {
-             font-weight: bold;
-             margin-bottom: 5px;
-           }
-           .service-description {
-             margin-bottom: 5px;
-           }
-           .service-price {
-             text-align: right;
-             font-weight: bold;
-           }
-           .total-section {
-             margin: 20px 0;
-             text-align: right;
-           }
-           .subtotal {
-             font-size: 11pt;
-             margin-bottom: 5px;
-           }
-           .discount {
-             font-size: 11pt;
-             color: #666;
-             margin-bottom: 5px;
-           }
-           .total {
-             font-size: 14pt;
-             font-weight: bold;
-             border-top: 2px solid #000;
-             padding-top: 10px;
-             margin-top: 10px;
-           }
-           .terms-section {
-             margin: 30px 0;
-           }
-           .terms-title {
-             font-size: 14pt;
-             font-weight: bold;
-             margin-bottom: 15px;
-             color: #000;
-           }
-           .terms-content {
-             text-align: justify;
-             margin-bottom: 15px;
-           }
-           .signatures-section {
-             margin-top: 50px;
-             page-break-inside: avoid;
-           }
-           .signature-grid {
-             display: flex;
-             justify-content: space-between;
-             margin-top: 30px;
-           }
-           .signature-box {
-             width: 45%;
-             text-align: center;
-             border-top: 1px solid #000;
-             padding-top: 10px;
-           }
-           .signature-title {
-             font-weight: bold;
-             margin-bottom: 5px;
-           }
-           .signature-name {
-             margin-bottom: 5px;
-           }
-           .signature-date {
-             font-size: 10pt;
-             color: #666;
-           }
-           .footer {
-             margin-top: 40px;
-             text-align: center;
-             border-top: 1px solid #000;
-             padding-top: 20px;
-             font-size: 10pt;
-             color: #666;
-           }
-           .page-number {
-             text-align: center;
-             margin-top: 20px;
-             font-size: 10pt;
-             color: #666;
-           }
-           @media print {
-             body { margin: 0; }
-             .page { padding: 0; }
-             .signatures-section { page-break-inside: avoid; }
-           }
-         </style>
-       </head>
-       <body>
-         <div class="page">
-           <div class="header">
-             <h1 class="logo">SUBE IA TECH</h1>
-             <h2 class="document-title">${contratoActual.estadoContrato === 'Firmado' ? 'CONTRATO DE SERVICIOS' : 'PRE-CONTRATO DE SERVICIOS'}</h2>
-             <div class="company-info">
-               <strong>Sube IA Tech Ltda.</strong><br>
-               Fco. Mansilla 1007, Castro, Chile<br>
-               RUT: 77.994.591-K | Email: contacto@subeia.tech
-             </div>
-             <div class="contract-details">
-               <div><strong>Código:</strong> ${contratoActual.codigoCotizacion}</div>
-               <div><strong>Estado:</strong> ${contratoActual.estadoContrato || 'Pendiente de Firma'}</div>
-               <div><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-CL')}</div>
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">1. INFORMACIÓN DE LAS PARTES</h3>
-             
-             <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">1.1 PRESTADOR DE SERVICIOS</h4>
-             <table class="info-table">
-               <tr>
-                 <td>Razón Social</td>
-                 <td>Sube IA Tech Ltda.</td>
-               </tr>
-               <tr>
-                 <td>RUT</td>
-                 <td>77.994.591-K</td>
-               </tr>
-               <tr>
-                 <td>Domicilio</td>
-                 <td>Fco. Mansilla 1007, Castro, Chile</td>
-               </tr>
-               <tr>
-                 <td>Email</td>
-                 <td>contacto@subeia.tech</td>
-               </tr>
-               <tr>
-                 <td>Representante</td>
-                 <td>${contratoActual.atendido || 'No especificado'}</td>
-               </tr>
-             </table>
-
-             <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">1.2 CLIENTE</h4>
-             <table class="info-table">
-               <tr>
-                 <td>Nombre/Razón Social</td>
-                 <td>${contratoActual.cliente?.nombre || 'No especificado'}</td>
-               </tr>
-               <tr>
-                 <td>RUT</td>
-                 <td>${contratoActual.cliente?.rut || 'No especificado'}</td>
-               </tr>
-               <tr>
-                 <td>Email</td>
-                 <td>${contratoActual.cliente?.email || 'No especificado'}</td>
-               </tr>
-               <tr>
-                 <td>Empresa</td>
-                 <td>${contratoActual.cliente?.empresa || 'No especificada'}</td>
-               </tr>
-             </table>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">2. OBJETO DEL CONTRATO</h3>
-             <div class="terms-content">
-               El presente contrato tiene por objeto la prestación de servicios de desarrollo de software, consultoría tecnológica y servicios relacionados con inteligencia artificial por parte de Sube IA Tech Ltda. al cliente antes mencionado, conforme a las especificaciones y condiciones establecidas en este documento.
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">3. SERVICIOS CONTRATADOS</h3>
-             ${contratoActual.descripcionServicios ? `
-             <div class="services-section">
-               <div class="service-item">
-                 <div class="service-title">Descripción de Servicios</div>
-                 <div class="service-description">${contratoActual.descripcionServicios}</div>
-               </div>
-             </div>
-             ` : `
-             <div class="services-section">
-               <div class="service-item">
-                 <div class="service-title">Servicios de Desarrollo y Consultoría</div>
-                 <div class="service-description">Servicios de desarrollo de software, consultoría tecnológica y servicios relacionados con inteligencia artificial.</div>
-               </div>
-             </div>
-             `}
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">4. VALOR Y FORMA DE PAGO</h3>
-                            <div class="total-section">
-                 ${contratoActual.descuento > 0 ? `
-                 <div class="subtotal">Subtotal: $${(contratoActual.total || 0).toLocaleString()}</div>
-                 <div class="discount">Descuento (${contratoActual.descuento}%): -$${((contratoActual.total || 0) * contratoActual.descuento / 100).toLocaleString()}</div>
-                 ` : ''}
-                 <div class="total">VALOR TOTAL: $${contratoActual.descuento > 0 ? (contratoActual.total - (contratoActual.total * contratoActual.descuento / 100)).toLocaleString() : (contratoActual.total || 0).toLocaleString()}</div>
-               </div>
-             
-             <div class="terms-content" style="margin-top: 20px;">
-               <strong>Condiciones de Pago:</strong><br>
-               • 50% al momento de la firma del contrato<br>
-               • 50% contra entrega de los servicios<br>
-               • Forma de pago: Transferencia bancaria o depósito
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">5. PLAZOS Y ENTREGA</h3>
-             <div class="terms-content">
-               Los servicios serán entregados según los plazos acordados entre las partes. En caso de no especificarse fechas específicas, los servicios se entregarán en un plazo máximo de 30 días hábiles desde la firma del presente contrato.
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">6. OBLIGACIONES DE LAS PARTES</h3>
-             
-             <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">6.1 OBLIGACIONES DEL PRESTADOR</h4>
-             <div class="terms-content">
-               • Ejecutar los servicios contratados con la calidad y profesionalismo requeridos<br>
-               • Cumplir con los plazos establecidos<br>
-               • Mantener la confidencialidad de la información del cliente<br>
-               • Proporcionar soporte técnico durante la ejecución del proyecto
-             </div>
-
-             <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">6.2 OBLIGACIONES DEL CLIENTE</h4>
-             <div class="terms-content">
-               • Proporcionar la información necesaria para la ejecución de los servicios<br>
-               • Realizar los pagos en los plazos establecidos<br>
-               • Colaborar en la revisión y aprobación de entregables<br>
-               • Notificar oportunamente cualquier cambio en los requerimientos
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">7. CONFIDENCIALIDAD</h3>
-             <div class="terms-content">
-               Ambas partes se comprometen a mantener la confidencialidad de toda la información técnica, comercial y estratégica que se intercambie durante la ejecución del presente contrato, obligación que subsistirá por un período de 5 años después de la terminación del contrato.
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">8. PROPIEDAD INTELECTUAL</h3>
-             <div class="terms-content">
-               Los derechos de propiedad intelectual sobre los desarrollos realizados serán transferidos al cliente una vez cancelado el valor total del contrato. Sube IA Tech Ltda. mantendrá los derechos sobre las herramientas, librerías y componentes de uso general desarrollados.
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">9. TERMINACIÓN</h3>
-             <div class="terms-content">
-               El presente contrato podrá ser terminado por mutuo acuerdo o por incumplimiento de cualquiera de las partes. En caso de terminación anticipada, se procederá a la liquidación de los servicios ejecutados hasta la fecha de terminación.
-             </div>
-           </div>
-
-           <div class="section">
-             <h3 class="section-title">10. DISPOSICIONES GENERALES</h3>
-             <div class="terms-content">
-               • Este contrato se rige por las leyes chilenas<br>
-               • Cualquier controversia será resuelta en los tribunales de Castro, Chile<br>
-               • Las modificaciones al contrato deben realizarse por escrito<br>
-               • El contrato entra en vigencia desde la fecha de firma
-             </div>
-           </div>
-
-           <div class="signatures-section">
-             <h3 class="section-title">FIRMAS</h3>
-             <div class="signature-grid">
-               <div class="signature-box">
-                 <div class="signature-title">PRESTADOR DE SERVICIOS</div>
-                 <div class="signature-name">Sube IA Tech Ltda.</div>
-                 <div class="signature-name">Representante: ${contratoActual.atendido || 'No especificado'}</div>
-                 <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
-                 ${contratoActual.firmaRepresentanteBase64 ? `
-                 <div style="margin-top: 20px; text-align: center;">
-                   <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
-                 </div>
-                 ` : `
-                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
-                   ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
-                 </div>
-                 `}
-               </div>
-               <div class="signature-box">
-                 <div class="signature-title">CLIENTE</div>
-                 <div class="signature-name">${contratoActual.cliente?.nombre || 'No especificado'}</div>
-                 <div class="signature-name">RUT: ${contratoActual.cliente?.rut || 'No especificado'}</div>
-                 <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
-                 ${contratoActual.firmaClienteBase64 ? `
-                 <div style="margin-top: 20px; text-align: center;">
-                   <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
-                 </div>
-                 ` : `
-                 <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
-                   ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
-                 </div>
-                 `}
-               </div>
-             </div>
-           </div>
-
-           <div class="footer">
-             <div>Documento generado el ${new Date().toLocaleDateString('es-CL')}</div>
-             <div>Sube IA Tech Ltda. - Todos los derechos reservados</div>
-           </div>
-
-           <div class="page-number">
-             Página 1 de 1
-           </div>
-         </div>
-       </body>
-       </html>
-     `;
+    // Inicializar EmailJS
+    emailjs.init('jlnRLQBCJ1JiBM2bJ');
     
-    // Escribir contenido en la nueva ventana
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+    // Generar PDF del contrato
+    const pdfBlob = await generarPDFBlob();
     
-    // Esperar a que se cargue y luego imprimir
-    printWindow.onload = function() {
-      printWindow.print();
-      printWindow.close();
+    // Preparar datos para EmailJS
+    const templateParams = {
+      to_email: email,
+      to_name: contratoActual.cliente?.nombre || 'Cliente',
+      subject: asunto,
+      message: mensaje,
+      contract_code: contratoActual.codigoCotizacion || 'Sin código',
+      contract_value: `$${(contratoActual.totalConDescuento || contratoActual.total || 0).toLocaleString()}`,
+      contract_date: formatearFecha(contratoActual.fechaCreacionContrato)
     };
     
-    console.log('✅ Ventana de impresión abierta');
+    // Enviar email usando EmailJS
+    const response = await emailjs.send(
+      'service_d0m6iqn',
+      'template_im18rqj',
+      templateParams
+    );
+    
+    console.log('✅ Email enviado exitosamente:', response);
+    alert('✅ Email enviado exitosamente al cliente.');
+    
+    // Cerrar modal
+    cerrarModalEmail();
+    
+    // Actualizar estado en Firestore
+    await actualizarEstadoEnvioEmail(email, asunto);
     
   } catch (error) {
-    console.error('❌ Error en descargarPDF:', error);
-    alert('Error al generar PDF. Por favor, inténtalo de nuevo.');
+    console.error('❌ Error al enviar email:', error);
+    alert('❌ Error al enviar email: ' + error.message);
+  }
+}
+
+async function generarPDFBlob() {
+  try {
+    // Crear contenido HTML para PDF
+    const contenidoHTML = generarHTMLContrato(contratoActual);
+    
+    // Crear elemento temporal
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contenidoHTML;
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.width = '210mm';
+    tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.padding = '20mm';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    tempDiv.style.color = '#000';
+    tempDiv.style.fontSize = '14px';
+    tempDiv.style.lineHeight = '1.6';
+    
+    document.body.appendChild(tempDiv);
+    
+    // Generar PDF
+    const pdfBlob = await html2pdf().from(tempDiv).outputPdf('blob');
+    
+    // Limpiar
+    document.body.removeChild(tempDiv);
+    
+    return pdfBlob;
+  } catch (error) {
+    console.error('❌ Error al generar PDF:', error);
+    throw error;
+  }
+}
+
+async function actualizarEstadoEnvioEmail(email, asunto) {
+  try {
+    // Importar Firebase dinámicamente
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    // Actualizar el contrato con información del envío
+    const contratoRef = doc(window.db, 'contratos', contratoActual.id);
+    await updateDoc(contratoRef, {
+      emailEnviado: email,
+      asuntoEmail: asunto,
+      fechaEnvioEmail: new Date(),
+      estadoContrato: 'Enviado'
+    });
+    
+    console.log('✅ Estado de envío actualizado en Firestore');
+    
+  } catch (error) {
+    console.error('❌ Error al actualizar estado de envío:', error);
   }
 }
 
@@ -798,17 +682,21 @@ function generarHTMLContrato(contratoData) {
           </div>
           <div style="text-align:right;">
             <span style="font-size:1.2em;font-weight:bold;color:#00B8D9;">$${totalFinal.toLocaleString()}</span>
-            ${descuento > 0 ? `<br><span style="color:#FF4EFF;font-weight:bold;">Con ${descuento}% descuento</span>` : ''}
           </div>
         </div>
+        ${descuento > 0 ? `
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+          <strong>Descuento aplicado:</strong> ${descuento}%
+        </div>
+        ` : ''}
       </div>
     </div>
 
     ${descripcionServicios ? `
     <div style="margin-bottom: 25px;">
       <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📝 Descripción de Servicios</h3>
-      <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
-        ${descripcionServicios}
+      <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+        <div style="white-space: pre-wrap;">${descripcionServicios}</div>
       </div>
     </div>
     ` : ''}
@@ -816,27 +704,70 @@ function generarHTMLContrato(contratoData) {
     ${terminosCondiciones ? `
     <div style="margin-bottom: 25px;">
       <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">📋 Términos y Condiciones</h3>
-      <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;white-space:pre-wrap;">
-        ${terminosCondiciones}
+      <div style="background:#f8fafc;padding:15px;border-radius:8px;border:2px solid #e2e8f0;">
+        <div style="white-space: pre-wrap;">${terminosCondiciones}</div>
       </div>
     </div>
     ` : ''}
-
-  </div>
-
-  <div style="margin-top: 40px;text-align: center;border-top: 3px solid #00B8D9;padding-top: 20px;color:#23263A;">
-    <div style="font-weight:bold;margin-bottom: 10px;">Sube IA Tech Ltda.</div>
-    <div style="font-size:0.9em;color:#64748b;margin-bottom: 15px;">
-      contacto@subeia.tech &mdash; Fco. Mansilla 1007, Castro, Chile
-    </div>
-    <div style="font-size:0.8em;color:#64748b;">
-      Documento generado el ${new Date().toLocaleDateString('es-CL')}
-    </div>
+    
+    ${generarHTMLFirmas()}
   </div>
   `;
 }
 
-
+// Función para generar HTML de las firmas
+function generarHTMLFirmas() {
+  const tieneFirmaRepresentante = !!contratoActual.firmaRepresentanteBase64;
+  const tieneFirmaCliente = !!contratoActual.firmaClienteBase64;
+  
+  if (!tieneFirmaRepresentante && !tieneFirmaCliente) {
+    return `
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+      <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">✍️ Firmas</h3>
+      <div style="text-align: center; color: #64748b; padding: 20px;">
+        <p>Este contrato aún no ha sido firmado.</p>
+      </div>
+    </div>
+    `;
+  }
+  
+  return `
+  <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+    <h3 style="font-weight:bold;color:#00B8D9;border-bottom: 2px solid #00B8D9;padding-bottom: 8px;margin-bottom: 15px;">✍️ Firmas</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+      <div style="text-align: center;">
+        <h4 style="color:#23263A;margin-bottom: 15px;">Representante Legal</h4>
+        ${tieneFirmaRepresentante ? `
+          <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+            <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" style="max-width: 200px; max-height: 100px; margin-bottom: 10px;">
+            <p style="margin: 5px 0; font-weight: bold;">${contratoActual.representanteLegal || contratoActual.atendido || 'No especificado'}</p>
+            <p style="margin: 5px 0; font-size: 12px; color: #64748b;">${formatearFecha(contratoActual.fechaFirmaRepresentante)}</p>
+          </div>
+        ` : `
+          <div style="border: 1px dashed #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+            <p style="color: #64748b; margin: 0;">Firma pendiente</p>
+          </div>
+        `}
+      </div>
+      
+      <div style="text-align: center;">
+        <h4 style="color:#23263A;margin-bottom: 15px;">Cliente</h4>
+        ${tieneFirmaCliente ? `
+          <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+            <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" style="max-width: 200px; max-height: 100px; margin-bottom: 10px;">
+            <p style="margin: 5px 0; font-weight: bold;">${contratoActual.cliente?.nombre || 'No especificado'}</p>
+            <p style="margin: 5px 0; font-size: 12px; color: #64748b;">${formatearFecha(contratoActual.fechaFirmaCliente)}</p>
+          </div>
+        ` : `
+          <div style="border: 1px dashed #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc;">
+            <p style="color: #64748b; margin: 0;">Firma pendiente</p>
+          </div>
+        `}
+      </div>
+    </div>
+  </div>
+  `;
+}
 
 function volverContratos() {
   window.location.href = 'contratos.html';
@@ -887,14 +818,604 @@ function mostrarContenido() {
   contenidoPreview.style.display = 'block';
 }
 
+// ===== FUNCIONES DE PDF =====
+function generarPDF() {
+  console.log('📄 Generando PDF desde modal...');
+  // Cerrar modal y ejecutar descarga de PDF
+  cerrarModalPrevisualizar();
+  setTimeout(() => {
+    descargarPDF();
+  }, 300);
+}
+
+function descargarPDF() {
+  console.log('📥 Descargando PDF...');
+  
+  // Verificar que contratoActual esté disponible
+  if (!contratoActual) {
+    console.error('❌ Datos del contrato no disponibles');
+    alert('Error: No se pueden obtener los datos del contrato.');
+    return;
+  }
+  
+  console.log('📋 Datos del contrato disponibles:', contratoActual);
+  
+  try {
+    // Método alternativo: Usar window.print() con contenido específico
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    // Generar contenido HTML para imprimir
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${contratoActual.estadoContrato === 'Firmado' ? 'Contrato' : 'Pre-Contrato'} - ${contratoActual.codigoCotizacion}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 2cm;
+          }
+          body {
+            font-family: 'Times New Roman', serif;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: white;
+            font-size: 12pt;
+            line-height: 1.5;
+          }
+          .page {
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 2cm;
+            background: white;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 28pt;
+            font-weight: bold;
+            margin: 0;
+            color: #000;
+          }
+          .document-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #000;
+          }
+          .company-info {
+            font-size: 11pt;
+            margin: 10px 0;
+            color: #000;
+          }
+          .contract-details {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 11pt;
+          }
+          .section {
+            margin-bottom: 25px;
+          }
+          .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #000;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+          }
+          .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+          .info-table td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            vertical-align: top;
+          }
+          .info-table td:first-child {
+            font-weight: bold;
+            width: 30%;
+            background: #f9f9f9;
+          }
+          .services-section {
+            margin: 20px 0;
+          }
+          .service-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+          }
+          .service-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .service-description {
+            margin-bottom: 5px;
+          }
+          .service-price {
+            text-align: right;
+            font-weight: bold;
+          }
+          .total-section {
+            margin: 20px 0;
+            text-align: right;
+          }
+          .subtotal {
+            font-size: 11pt;
+            margin-bottom: 5px;
+          }
+          .discount {
+            font-size: 11pt;
+            color: #666;
+            margin-bottom: 5px;
+          }
+          .total {
+            font-size: 14pt;
+            font-weight: bold;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            margin-top: 10px;
+          }
+          .terms-section {
+            margin: 30px 0;
+          }
+          .terms-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #000;
+          }
+          .terms-content {
+            text-align: justify;
+            margin-bottom: 15px;
+          }
+          .signatures-section {
+            margin-top: 50px;
+            page-break-inside: avoid;
+          }
+          .signature-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+          }
+          .signature-box {
+            width: 45%;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+          }
+          .signature-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .signature-name {
+            margin-bottom: 5px;
+          }
+          .signature-date {
+            font-size: 10pt;
+            color: #666;
+          }
+          .footer {
+            margin-top: 40px;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 20px;
+            font-size: 10pt;
+            color: #666;
+          }
+          .page-number {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10pt;
+            color: #666;
+          }
+          @media print {
+            body { margin: 0; }
+            .page { padding: 0; }
+            .signatures-section { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <h1 class="logo">SUBE IA TECH</h1>
+            <h2 class="document-title">${contratoActual.estadoContrato === 'Firmado' ? 'CONTRATO DE SERVICIOS' : 'PRE-CONTRATO DE SERVICIOS'}</h2>
+            <div class="company-info">
+              <strong>Sube IA Tech Ltda.</strong><br>
+              Fco. Mansilla 1007, Castro, Chile<br>
+              RUT: 77.994.591-K | Email: contacto@subeia.tech
+            </div>
+            <div class="contract-details">
+              <div><strong>Código:</strong> ${contratoActual.codigoCotizacion}</div>
+              <div><strong>Estado:</strong> ${contratoActual.estadoContrato || 'Pendiente de Firma'}</div>
+              <div><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-CL')}</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">1. INFORMACIÓN DE LAS PARTES</h3>
+            
+            <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">1.1 PRESTADOR DE SERVICIOS</h4>
+            <table class="info-table">
+              <tr>
+                <td>Razón Social</td>
+                <td>Sube IA Tech Ltda.</td>
+              </tr>
+              <tr>
+                <td>RUT</td>
+                <td>77.994.591-K</td>
+              </tr>
+              <tr>
+                <td>Domicilio</td>
+                <td>Fco. Mansilla 1007, Castro, Chile</td>
+              </tr>
+              <tr>
+                <td>Email</td>
+                <td>contacto@subeia.tech</td>
+              </tr>
+              <tr>
+                <td>Representante</td>
+                <td>${contratoActual.atendido || 'No especificado'}</td>
+              </tr>
+            </table>
+
+            <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">1.2 CLIENTE</h4>
+            <table class="info-table">
+              <tr>
+                <td>Nombre/Razón Social</td>
+                <td>${contratoActual.cliente?.nombre || 'No especificado'}</td>
+              </tr>
+              <tr>
+                <td>RUT</td>
+                <td>${contratoActual.cliente?.rut || 'No especificado'}</td>
+              </tr>
+              <tr>
+                <td>Email</td>
+                <td>${contratoActual.cliente?.email || 'No especificado'}</td>
+              </tr>
+              <tr>
+                <td>Empresa</td>
+                <td>${contratoActual.cliente?.empresa || 'No especificada'}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">2. OBJETO DEL CONTRATO</h3>
+            <div class="terms-content">
+              El presente contrato tiene por objeto la prestación de servicios de desarrollo de software, consultoría tecnológica y servicios relacionados con inteligencia artificial por parte de Sube IA Tech Ltda. al cliente antes mencionado, conforme a las especificaciones y condiciones establecidas en este documento.
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">3. SERVICIOS CONTRATADOS</h3>
+            ${contratoActual.descripcionServicios ? `
+            <div class="services-section">
+              <div class="service-item">
+                <div class="service-title">Descripción de Servicios</div>
+                <div class="service-description">${contratoActual.descripcionServicios}</div>
+              </div>
+            </div>
+            ` : `
+            <div class="services-section">
+              <div class="service-item">
+                <div class="service-title">Servicios de Desarrollo y Consultoría</div>
+                <div class="service-description">Servicios de desarrollo de software, consultoría tecnológica y servicios relacionados con inteligencia artificial.</div>
+              </div>
+            </div>
+            `}
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">4. VALOR Y FORMA DE PAGO</h3>
+            <div class="total-section">
+              ${contratoActual.descuento > 0 ? `
+              <div class="subtotal">Subtotal: $${(contratoActual.total || 0).toLocaleString()}</div>
+              <div class="discount">Descuento (${contratoActual.descuento}%): -$${((contratoActual.total || 0) * contratoActual.descuento / 100).toLocaleString()}</div>
+              ` : ''}
+              <div class="total">VALOR TOTAL: $${contratoActual.descuento > 0 ? (contratoActual.total - (contratoActual.total * contratoActual.descuento / 100)).toLocaleString() : (contratoActual.total || 0).toLocaleString()}</div>
+            </div>
+            
+            <div class="terms-content" style="margin-top: 20px;">
+              <strong>Condiciones de Pago:</strong><br>
+              • 50% al momento de la firma del contrato<br>
+              • 50% contra entrega de los servicios<br>
+              • Forma de pago: Transferencia bancaria o depósito
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">5. PLAZOS Y ENTREGA</h3>
+            <div class="terms-content">
+              Los servicios serán entregados según los plazos acordados entre las partes. En caso de no especificarse fechas específicas, los servicios se entregarán en un plazo máximo de 30 días hábiles desde la firma del presente contrato.
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">6. OBLIGACIONES DE LAS PARTES</h3>
+            
+            <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">6.1 OBLIGACIONES DEL PRESTADOR</h4>
+            <div class="terms-content">
+              • Ejecutar los servicios contratados con la calidad y profesionalismo requeridos<br>
+              • Cumplir con los plazos establecidos<br>
+              • Mantener la confidencialidad de la información del cliente<br>
+              • Proporcionar soporte técnico durante la ejecución del proyecto
+            </div>
+
+            <h4 style="margin: 15px 0 10px 0; font-size: 12pt; font-weight: bold;">6.2 OBLIGACIONES DEL CLIENTE</h4>
+            <div class="terms-content">
+              • Proporcionar la información necesaria para la ejecución de los servicios<br>
+              • Realizar los pagos en los plazos establecidos<br>
+              • Colaborar en la revisión y aprobación de entregables<br>
+              • Notificar oportunamente cualquier cambio en los requerimientos
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">7. CONFIDENCIALIDAD</h3>
+            <div class="terms-content">
+              Ambas partes se comprometen a mantener la confidencialidad de toda la información técnica, comercial y estratégica que se intercambie durante la ejecución del presente contrato, obligación que subsistirá por un período de 5 años después de la terminación del contrato.
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">8. PROPIEDAD INTELECTUAL</h3>
+            <div class="terms-content">
+              Los derechos de propiedad intelectual sobre los desarrollos realizados serán transferidos al cliente una vez cancelado el valor total del contrato. Sube IA Tech Ltda. mantendrá los derechos sobre las herramientas, librerías y componentes de uso general desarrollados.
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">9. TERMINACIÓN</h3>
+            <div class="terms-content">
+              El presente contrato podrá ser terminado por mutuo acuerdo o por incumplimiento de cualquiera de las partes. En caso de terminación anticipada, se procederá a la liquidación de los servicios ejecutados hasta la fecha de terminación.
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">10. DISPOSICIONES GENERALES</h3>
+            <div class="terms-content">
+              • Este contrato se rige por las leyes chilenas<br>
+              • Cualquier controversia será resuelta en los tribunales de Castro, Chile<br>
+              • Las modificaciones al contrato deben realizarse por escrito<br>
+              • El contrato entra en vigencia desde la fecha de firma
+            </div>
+          </div>
+
+          <div class="signatures-section">
+            <h3 class="section-title">FIRMAS</h3>
+            <div class="signature-grid">
+              <div class="signature-box">
+                <div class="signature-title">PRESTADOR DE SERVICIOS</div>
+                <div class="signature-name">Sube IA Tech Ltda.</div>
+                <div class="signature-name">Representante: ${contratoActual.atendido || 'No especificado'}</div>
+                <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
+                ${contratoActual.firmaRepresentanteBase64 ? `
+                <div style="margin-top: 20px; text-align: center;">
+                  <img src="${contratoActual.firmaRepresentanteBase64}" alt="Firma del Representante" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
+                </div>
+                ` : `
+                <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
+                  ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
+                </div>
+                `}
+              </div>
+              <div class="signature-box">
+                <div class="signature-title">CLIENTE</div>
+                <div class="signature-name">${contratoActual.cliente?.nombre || 'No especificado'}</div>
+                <div class="signature-name">RUT: ${contratoActual.cliente?.rut || 'No especificado'}</div>
+                <div class="signature-date">Fecha: ${contratoActual.estadoContrato === 'Firmado' ? new Date().toLocaleDateString('es-CL') : '_________________'}</div>
+                ${contratoActual.firmaClienteBase64 ? `
+                <div style="margin-top: 20px; text-align: center;">
+                  <img src="${contratoActual.firmaClienteBase64}" alt="Firma del Cliente" style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
+                </div>
+                ` : `
+                <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; font-weight: bold;">
+                  ${contratoActual.estadoContrato === 'Firmado' ? 'FIRMADO' : 'Firma'}
+                </div>
+                `}
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div>Documento generado el ${new Date().toLocaleDateString('es-CL')}</div>
+            <div>Sube IA Tech Ltda. - Todos los derechos reservados</div>
+          </div>
+
+          <div class="page-number">
+            Página 1 de 1
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Escribir contenido en la nueva ventana
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Esperar a que se cargue y luego imprimir
+    printWindow.onload = function() {
+      printWindow.print();
+      printWindow.close();
+    };
+    
+    console.log('✅ Ventana de impresión abierta');
+    
+  } catch (error) {
+    console.error('❌ Error en descargarPDF:', error);
+    alert('Error al generar PDF. Por favor, inténtalo de nuevo.');
+  }
+}
+
+// ===== FUNCIONES DE PDF PREVIEW =====
+async function generarPDFPreview() {
+  try {
+    console.log('📄 Generando PDF preview...');
+    
+    // Generar el HTML del contrato
+    const contenidoHTML = generarHTMLContrato(contratoActual);
+    
+    // Crear un elemento temporal para el PDF
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contenidoHTML;
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.style.width = '800px';
+    tempDiv.style.background = 'white';
+    tempDiv.style.padding = '20px';
+    document.body.appendChild(tempDiv);
+    
+    // Configuración de html2pdf
+    const opt = {
+      margin: 10,
+      filename: `contrato-${contratoActual.codigoCotizacion || contratoActual.id}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generar PDF
+    await html2pdf().set(opt).from(tempDiv).save();
+    
+    // Limpiar elemento temporal
+    document.body.removeChild(tempDiv);
+    
+    console.log('✅ PDF generado exitosamente');
+    mostrarNotificacion('PDF generado exitosamente', 'success');
+    
+  } catch (error) {
+    console.error('❌ Error al generar PDF:', error);
+    mostrarNotificacion('Error al generar PDF: ' + error.message, 'error');
+  }
+}
+
+async function descargarPDFPreview() {
+  try {
+    console.log('📥 Descargando PDF...');
+    
+    // Generar el HTML del contrato
+    const contenidoHTML = generarHTMLContrato(contratoActual);
+    
+    // Crear un elemento temporal para el PDF
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contenidoHTML;
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.style.width = '800px';
+    tempDiv.style.background = 'white';
+    tempDiv.style.padding = '20px';
+    document.body.appendChild(tempDiv);
+    
+    // Configuración de html2pdf
+    const opt = {
+      margin: 10,
+      filename: `contrato-${contratoActual.codigoCotizacion || contratoActual.id}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generar y descargar PDF
+    await html2pdf().set(opt).from(tempDiv).save();
+    
+    // Limpiar elemento temporal
+    document.body.removeChild(tempDiv);
+    
+    console.log('✅ PDF descargado exitosamente');
+    mostrarNotificacion('PDF descargado exitosamente', 'success');
+    
+  } catch (error) {
+    console.error('❌ Error al descargar PDF:', error);
+    mostrarNotificacion('Error al descargar PDF: ' + error.message, 'error');
+  }
+}
+
+// ===== SISTEMA DE NOTIFICACIONES =====
+function mostrarNotificacion(mensaje, tipo = 'success') {
+  console.log(`🔔 Notificación [${tipo}]:`, mensaje);
+  
+  // Remover notificaciones existentes para evitar superposiciones
+  const notificacionesExistentes = document.querySelectorAll('.notificacion');
+  notificacionesExistentes.forEach(notif => {
+    notif.classList.remove('notificacion-mostrar');
+    setTimeout(() => {
+      if (notif.parentElement) {
+        notif.remove();
+      }
+    }, 300);
+  });
+  
+  // Crear elemento de notificación
+  const notificacion = document.createElement('div');
+  notificacion.className = `notificacion notificacion-${tipo}`;
+  notificacion.innerHTML = `
+    <div class="notificacion-contenido">
+      <span class="notificacion-icono">${tipo === 'success' ? '✅' : '❌'}</span>
+      <span class="notificacion-mensaje">${mensaje}</span>
+      <button class="notificacion-cerrar" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  
+  // Agregar al DOM
+  document.body.appendChild(notificacion);
+  
+  // Animación de entrada
+  setTimeout(() => {
+    notificacion.classList.add('notificacion-mostrar');
+  }, 100);
+  
+  // Auto-remover después de 5 segundos
+  setTimeout(() => {
+    if (notificacion.parentElement) {
+      notificacion.classList.remove('notificacion-mostrar');
+      setTimeout(() => {
+        if (notificacion.parentElement) {
+          notificacion.remove();
+        }
+      }, 300);
+    }
+  }, 5000);
+}
+
 // ===== HACER FUNCIONES DISPONIBLES GLOBALMENTE =====
-window.imprimirContrato = imprimirContrato;
+window.previsualizarContrato = previsualizarContrato;
+window.cerrarModalPrevisualizar = cerrarModalPrevisualizar;
+window.cerrarModalEmail = cerrarModalEmail;
+window.agregarFirmaRepresentante = agregarFirmaRepresentante;
+window.generarLinkFirmaCliente = generarLinkFirmaCliente;
+window.enviarPorEmail = enviarPorEmail;
+window.enviarEmailReal = enviarEmailReal;
+window.generarPDF = generarPDF;
 window.descargarPDF = descargarPDF;
+window.generarPDFPreview = generarPDFPreview;
+window.descargarPDFPreview = descargarPDFPreview;
+window.mostrarNotificacion = mostrarNotificacion;
 window.volverContratos = volverContratos;
 
 // Verificar que las funciones estén disponibles
 console.log('✅ Funciones globales configuradas:', {
-  imprimirContrato: typeof window.imprimirContrato,
+  previsualizarContrato: typeof window.previsualizarContrato,
+  cerrarModalPrevisualizar: typeof window.cerrarModalPrevisualizar,
+  cerrarModalEmail: typeof window.cerrarModalEmail,
+  agregarFirmaRepresentante: typeof window.agregarFirmaRepresentante,
+  generarLinkFirmaCliente: typeof window.generarLinkFirmaCliente,
+  enviarPorEmail: typeof window.enviarPorEmail,
+  enviarEmailReal: typeof window.enviarEmailReal,
+  generarPDF: typeof window.generarPDF,
   descargarPDF: typeof window.descargarPDF,
   volverContratos: typeof window.volverContratos
-}); 
+});

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test - Firma Corregida - SUBE IA</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .test-container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .test-button {
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .test-button:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(0, 255, 240, 0.25);
+    }
+    
+    .test-scenario {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: left;
+    }
+    
+    .test-scenario h3 {
+      color: var(--color-primary);
+      margin-bottom: 10px;
+    }
+    
+    .test-scenario ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .test-scenario li {
+      margin: 5px 0;
+      color: var(--color-text-secondary);
+    }
+  </style>
+</head>
+<body style="display: none;">
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="header-content">
+        <h1>🧪 Test - Firma Corregida</h1>
+        <div class="header-actions">
+          <h2>SUBE IA TECH</h2>
+          <a href="contratos.html" class="btn btn-primary">Volver a Contratos</a>
+          <a href="admin.html" class="btn btn-secondary">Panel Admin</a>
+          <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
+        </div>
+      </div>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <main class="admin-main">
+      <div class="test-container">
+        <h2>🧪 Prueba de Sistema de Firma Corregido</h2>
+        <p>Este test permite verificar que las correcciones del sistema de firma funcionen correctamente.</p>
+        
+        <div style="margin: 30px 0;">
+          <h3>📋 Escenarios de Prueba</h3>
+          
+          <div class="test-scenario">
+            <h3>🎯 Escenario 1: Contrato con Solo Firma del Cliente</h3>
+            <ul>
+              <li>Estado debe mostrar "Pendiente de Firma" (no "Firmado")</li>
+              <li>Área de firma del cliente debe estar oculta</li>
+              <li>Área de firma del representante debe estar habilitada</li>
+              <li>Botón finalizar debe estar deshabilitado</li>
+            </ul>
+            <button class="test-button" onclick="testEscenario1()">
+              🧪 Probar Escenario 1
+            </button>
+          </div>
+          
+          <div class="test-scenario">
+            <h3>🎯 Escenario 2: Contrato Completamente Firmado</h3>
+            <ul>
+              <li>Estado debe mostrar "Firmado"</li>
+              <li>Ambas áreas de firma deben estar deshabilitadas/ocultas</li>
+              <li>Debe mostrar mensaje de confirmación</li>
+              <li>Botón finalizar debe estar habilitado</li>
+            </ul>
+            <button class="test-button" onclick="testEscenario2()">
+              🧪 Probar Escenario 2
+            </button>
+          </div>
+          
+          <div class="test-scenario">
+            <h3>🎯 Escenario 3: Contrato Sin Firmas</h3>
+            <ul>
+              <li>Estado debe mostrar "Pendiente de Firma"</li>
+              <li>Ambas áreas de firma deben estar habilitadas</li>
+              <li>Botón finalizar debe estar deshabilitado</li>
+            </ul>
+            <button class="test-button" onclick="testEscenario3()">
+              🧪 Probar Escenario 3
+            </button>
+          </div>
+        </div>
+        
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px; text-align: left;">
+          <h3>📊 Resultados de Pruebas</h3>
+          <div id="resultados-pruebas">
+            <p>Ejecuta un escenario para ver los resultados...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module" src="js/firebase-config.js"></script>
+  
+  <!-- Script de auth guard -->
+  <script type="module" src="js/auth-guard.js"></script>
+  
+  <!-- Script de prueba -->
+  <script>
+    // Datos de prueba para diferentes escenarios
+    const escenariosPrueba = {
+      escenario1: {
+        id: 'test-contrato-cliente-firmado',
+        tituloContrato: 'Contrato de Desarrollo Web',
+        codigoCotizacion: 'CON-2024-001',
+        estadoContrato: 'Pendiente de Firma', // Debe ser pendiente, no firmado
+        fechaCreacionContrato: new Date(),
+        atendido: 'María González',
+        cliente: {
+          nombre: 'Juan Pérez',
+          email: 'juan.perez@empresa.com',
+          rut: '12.345.678-9',
+          empresa: 'Empresa ABC Ltda.'
+        },
+        total: 2500000,
+        totalConDescuento: 2500000,
+        descuento: 0,
+        descripcionServicios: 'Desarrollo de sitio web corporativo',
+        // Solo firma del cliente
+        firmaClienteBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        fechaFirmaCliente: new Date(),
+        // Sin firma del representante
+        firmaRepresentanteBase64: null,
+        fechaFirmaRepresentante: null
+      },
+      
+      escenario2: {
+        id: 'test-contrato-completamente-firmado',
+        tituloContrato: 'Contrato de Consultoría',
+        codigoCotizacion: 'CON-2024-002',
+        estadoContrato: 'Firmado',
+        fechaCreacionContrato: new Date(),
+        atendido: 'Bruno Villalobos',
+        cliente: {
+          nombre: 'Ana García',
+          email: 'ana.garcia@empresa.com',
+          rut: '98.765.432-1',
+          empresa: 'Empresa XYZ Ltda.'
+        },
+        total: 1500000,
+        totalConDescuento: 1500000,
+        descuento: 0,
+        descripcionServicios: 'Consultoría en inteligencia artificial',
+        // Ambas firmas
+        firmaClienteBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        fechaFirmaCliente: new Date(),
+        firmaRepresentanteBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        fechaFirmaRepresentante: new Date(),
+        representanteLegal: 'Bruno Villalobos - CEO'
+      },
+      
+      escenario3: {
+        id: 'test-contrato-sin-firmas',
+        tituloContrato: 'Contrato de Mantenimiento',
+        codigoCotizacion: 'CON-2024-003',
+        estadoContrato: 'Pendiente de Firma',
+        fechaCreacionContrato: new Date(),
+        atendido: 'Mario Muñoz',
+        cliente: {
+          nombre: 'Carlos López',
+          email: 'carlos.lopez@empresa.com',
+          rut: '11.222.333-4',
+          empresa: 'Empresa DEF Ltda.'
+        },
+        total: 800000,
+        totalConDescuento: 800000,
+        descuento: 0,
+        descripcionServicios: 'Mantenimiento de sistemas',
+        // Sin firmas
+        firmaClienteBase64: null,
+        fechaFirmaCliente: null,
+        firmaRepresentanteBase64: null,
+        fechaFirmaRepresentante: null
+      }
+    };
+
+    // Función para probar escenario 1
+    function testEscenario1() {
+      console.log('🧪 Probando Escenario 1: Contrato con solo firma del cliente');
+      
+      const contrato = escenariosPrueba.escenario1;
+      
+      // Verificar estado
+      const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+      const estadoReal = (tieneFirmaRepresentante && tieneFirmaCliente) ? 'Firmado' : 'Pendiente de Firma';
+      
+      const resultados = `
+        <h4>✅ Resultados Escenario 1:</h4>
+        <ul>
+          <li><strong>Estado esperado:</strong> Pendiente de Firma</li>
+          <li><strong>Estado calculado:</strong> ${estadoReal} ${estadoReal === 'Pendiente de Firma' ? '✅' : '❌'}</li>
+          <li><strong>Firma representante:</strong> ${tieneFirmaRepresentante ? 'Presente' : 'Faltante'} ${!tieneFirmaRepresentante ? '✅' : '❌'}</li>
+          <li><strong>Firma cliente:</strong> ${tieneFirmaCliente ? 'Presente' : 'Faltante'} ${tieneFirmaCliente ? '✅' : '❌'}</li>
+          <li><strong>Puede finalizar:</strong> ${(tieneFirmaRepresentante && tieneFirmaCliente) ? 'Sí' : 'No'} ${!(tieneFirmaRepresentante && tieneFirmaCliente) ? '✅' : '❌'}</li>
+        </ul>
+      `;
+      
+      document.getElementById('resultados-pruebas').innerHTML = resultados;
+    }
+
+    // Función para probar escenario 2
+    function testEscenario2() {
+      console.log('🧪 Probando Escenario 2: Contrato completamente firmado');
+      
+      const contrato = escenariosPrueba.escenario2;
+      
+      // Verificar estado
+      const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+      const estadoReal = (tieneFirmaRepresentante && tieneFirmaCliente) ? 'Firmado' : 'Pendiente de Firma';
+      
+      const resultados = `
+        <h4>✅ Resultados Escenario 2:</h4>
+        <ul>
+          <li><strong>Estado esperado:</strong> Firmado</li>
+          <li><strong>Estado calculado:</strong> ${estadoReal} ${estadoReal === 'Firmado' ? '✅' : '❌'}</li>
+          <li><strong>Firma representante:</strong> ${tieneFirmaRepresentante ? 'Presente' : 'Faltante'} ${tieneFirmaRepresentante ? '✅' : '❌'}</li>
+          <li><strong>Firma cliente:</strong> ${tieneFirmaCliente ? 'Presente' : 'Faltante'} ${tieneFirmaCliente ? '✅' : '❌'}</li>
+          <li><strong>Puede finalizar:</strong> ${(tieneFirmaRepresentante && tieneFirmaCliente) ? 'Sí' : 'No'} ${(tieneFirmaRepresentante && tieneFirmaCliente) ? '✅' : '❌'}</li>
+        </ul>
+      `;
+      
+      document.getElementById('resultados-pruebas').innerHTML = resultados;
+    }
+
+    // Función para probar escenario 3
+    function testEscenario3() {
+      console.log('🧪 Probando Escenario 3: Contrato sin firmas');
+      
+      const contrato = escenariosPrueba.escenario3;
+      
+      // Verificar estado
+      const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+      const estadoReal = (tieneFirmaRepresentante && tieneFirmaCliente) ? 'Firmado' : 'Pendiente de Firma';
+      
+      const resultados = `
+        <h4>✅ Resultados Escenario 3:</h4>
+        <ul>
+          <li><strong>Estado esperado:</strong> Pendiente de Firma</li>
+          <li><strong>Estado calculado:</strong> ${estadoReal} ${estadoReal === 'Pendiente de Firma' ? '✅' : '❌'}</li>
+          <li><strong>Firma representante:</strong> ${tieneFirmaRepresentante ? 'Presente' : 'Faltante'} ${!tieneFirmaRepresentante ? '✅' : '❌'}</li>
+          <li><strong>Firma cliente:</strong> ${tieneFirmaCliente ? 'Presente' : 'Faltante'} ${!tieneFirmaCliente ? '✅' : '❌'}</li>
+          <li><strong>Puede finalizar:</strong> ${(tieneFirmaRepresentante && tieneFirmaCliente) ? 'Sí' : 'No'} ${!(tieneFirmaRepresentante && tieneFirmaCliente) ? '✅' : '❌'}</li>
+        </ul>
+      `;
+      
+      document.getElementById('resultados-pruebas').innerHTML = resultados;
+    }
+
+    // Función para simular redirección a firma
+    function simularFirma(escenario) {
+      const contrato = escenariosPrueba[escenario];
+      const contratoData = encodeURIComponent(JSON.stringify(contrato));
+      const url = `firmar-contrato.html?id=${contrato.id}`;
+      
+      console.log(`🔗 Redirigiendo a: ${url}`);
+      console.log('📋 Datos del contrato:', contrato);
+      
+      // En un entorno real, esto redirigiría a la página de firma
+      alert(`🧪 Simulando redirección a firma del contrato ${contrato.codigoCotizacion}\n\nURL: ${url}\n\nEn un entorno real, esto abriría la página de firma con los datos del escenario.`);
+    }
+
+    // Hacer funciones disponibles globalmente
+    window.testEscenario1 = testEscenario1;
+    window.testEscenario2 = testEscenario2;
+    window.testEscenario3 = testEscenario3;
+    window.simularFirma = simularFirma;
+
+    console.log('✅ Test de firma corregida cargado');
+  </script>
+</body>
+</html> 

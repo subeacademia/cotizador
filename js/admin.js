@@ -97,6 +97,10 @@ async function cargarCotizaciones() {
     
     actualizarEstadisticas();
     renderizarCotizaciones();
+    
+    // Verificar y actualizar automáticamente el estado de firmas
+    await verificarYActualizarEstadoFirmas();
+    
     mostrarLoading(false);
     mostrarNoData(false);
     
@@ -1441,3 +1445,58 @@ window.eliminarCotizacion = eliminarCotizacion;
 window.mostrarNotificacion = mostrarNotificacion;
 window.crearPreContrato = crearPreContrato;
 window.cargarCotizaciones = cargarCotizaciones; 
+
+// ===== VERIFICAR Y ACTUALIZAR ESTADO AUTOMÁTICO DE FIRMAS =====
+async function verificarYActualizarEstadoFirmas() {
+  console.log('🔍 Verificando estado automático de firmas en admin...');
+  
+  try {
+    // Importar Firebase dinámicamente
+    const { collection, query, getDocs, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    // Obtener todos los contratos
+    const contratosQuery = query(collection(window.db, 'contratos'));
+    const contratosSnapshot = await getDocs(contratosQuery);
+    
+    let contratosActualizados = 0;
+    
+    // Revisar cada contrato
+    for (const doc of contratosSnapshot.docs) {
+      const contrato = doc.data();
+      
+      // Solo verificar contratos que estén en "Pendiente de Firma"
+      if (contrato.estadoContrato === 'Pendiente de Firma') {
+        const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+        const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+        
+        // Si tiene ambas firmas, actualizar automáticamente el estado
+        if (tieneFirmaRepresentante && tieneFirmaCliente) {
+          console.log(`✅ Contrato ${contrato.codigoCotizacion} tiene ambas firmas - actualizando a Firmado`);
+          
+          // Actualizar en Firestore
+          const contratoRef = doc(window.db, 'contratos', doc.id);
+          await updateDoc(contratoRef, {
+            estadoContrato: 'Firmado',
+            fechaFirmaFinal: new Date(),
+            contratoValido: true,
+            esPreContrato: false,
+            fechaCompletado: new Date(),
+            ambasFirmasCompletadas: true
+          });
+          
+          contratosActualizados++;
+        }
+      }
+    }
+    
+    if (contratosActualizados > 0) {
+      console.log(`✅ ${contratosActualizados} contratos actualizados automáticamente a Firmado desde admin`);
+      mostrarNotificacion(`${contratosActualizados} contratos actualizados automáticamente a Firmado`, 'success');
+    } else {
+      console.log('ℹ️ No se encontraron contratos que requieran actualización automática');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al verificar estado automático de firmas:', error);
+  }
+} 

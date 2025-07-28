@@ -4,6 +4,7 @@ let signaturePadRepresentante = null;
 let signaturePadCliente = null;
 let firmaRepresentanteGuardada = false;
 let firmaClienteGuardada = false;
+let esPanelAdmin = true; // Flag para identificar si estamos en el panel de administración
 
 // Elementos del DOM
 const loadingFirma = document.getElementById('loading-firma');
@@ -18,7 +19,11 @@ const btnFinalizar = document.getElementById('btn-finalizar');
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Inicializando sistema de firma digital con doble firma...');
+  console.log('🚀 Inicializando sistema de firma digital para representante...');
+  
+  // Determinar si estamos en el panel de administración
+  esPanelAdmin = window.location.href.includes('firmar-contrato.html');
+  console.log('🏢 Panel de administración:', esPanelAdmin);
   
   // Esperar a que Firebase esté disponible
   if (window.db) {
@@ -98,19 +103,58 @@ async function inicializarFirma() {
     // Cargar datos del contrato
     await cargarContrato(contratoId);
     
-    // Inicializar signature pads
+    // Configurar interfaz según el contexto (admin vs cliente)
+    configurarInterfazSegunContexto();
+    
+    // Inicializar SignaturePads
     inicializarSignaturePads();
+    
+    // Verificar firmas existentes y actualizar estado
+    verificarFirmasExistentes();
     
     // Mostrar contenido
     mostrarContenido();
     
   } catch (error) {
     console.error('❌ Error al inicializar firma:', error);
-    mostrarError('Error al inicializar el sistema de firma');
+    mostrarError('Error al inicializar el sistema de firma: ' + error.message);
   }
 }
 
-// ===== CARGAR DATOS DEL CONTRATO =====
+// ===== CONFIGURAR INTERFAZ SEGÚN CONTEXTO =====
+function configurarInterfazSegunContexto() {
+  if (esPanelAdmin) {
+    console.log('🏢 Configurando interfaz para panel de administración');
+    
+    // Ocultar completamente la sección de firma del cliente
+    const clienteSeccion = document.getElementById('seccion-firma-cliente');
+    if (clienteSeccion) {
+      clienteSeccion.style.display = 'none';
+    }
+    
+    // Actualizar título y descripción
+    const tituloFirma = document.querySelector('.firma-pad-container h3');
+    if (tituloFirma) {
+      tituloFirma.textContent = '✍️ Firma Digital - Representante Legal';
+    }
+    
+    const descripcionFirma = document.querySelector('.firma-info');
+    if (descripcionFirma) {
+      descripcionFirma.textContent = 'Este contrato requiere la firma del representante legal para ser válido';
+    }
+    
+    // Actualizar botón finalizar
+    if (btnFinalizar) {
+      btnFinalizar.textContent = 'Guardar Firma Representante';
+      btnFinalizar.onclick = guardarFirmaRepresentante;
+    }
+  } else {
+    console.log('👤 Configurando interfaz para cliente');
+    // La interfaz del cliente se mantiene como está
+  }
+}
+
+// ===== CARGAR CONTRATO =====
 async function cargarContrato(contratoId) {
   try {
     // Importar Firebase dinámicamente
@@ -142,16 +186,140 @@ async function cargarContrato(contratoId) {
   }
 }
 
+// ===== VERIFICAR FIRMAS EXISTENTES =====
+function verificarFirmasExistentes() {
+  console.log('🔍 Verificando firmas existentes...');
+  
+  // Verificar firma del representante
+  if (contratoActual.firmaRepresentanteBase64) {
+    console.log('✅ Firma del representante encontrada');
+    firmaRepresentanteGuardada = true;
+    
+    // Mostrar firma existente en el canvas
+    if (signaturePadRepresentante) {
+      const img = new Image();
+      img.onload = function() {
+        const ctx = firmaRepresentanteCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, firmaRepresentanteCanvas.width, firmaRepresentanteCanvas.height);
+        signaturePadRepresentante.fromDataURL(contratoActual.firmaRepresentanteBase64);
+      };
+      img.src = contratoActual.firmaRepresentanteBase64;
+    }
+    
+    // Deshabilitar área de firma del representante
+    const representanteSeccion = document.querySelector('.firma-seccion:first-of-type');
+    if (representanteSeccion) {
+      representanteSeccion.style.opacity = '0.6';
+      representanteSeccion.style.pointerEvents = 'none';
+    }
+  } else {
+    console.log('❌ Firma del representante no encontrada');
+    firmaRepresentanteGuardada = false;
+  }
+  
+  // Solo verificar firma del cliente si NO estamos en el panel de administración
+  if (!esPanelAdmin) {
+    if (contratoActual.firmaClienteBase64) {
+      console.log('✅ Firma del cliente encontrada');
+      firmaClienteGuardada = true;
+      
+      // Mostrar firma existente en el canvas
+      if (signaturePadCliente) {
+        const img = new Image();
+        img.onload = function() {
+          const ctx = firmaClienteCanvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, firmaClienteCanvas.width, firmaClienteCanvas.height);
+          signaturePadCliente.fromDataURL(contratoActual.firmaClienteBase64);
+        };
+        img.src = contratoActual.firmaClienteBase64;
+      }
+      
+      // Ocultar área de firma del cliente si ya está firmado
+      const clienteSeccion = document.getElementById('seccion-firma-cliente');
+      if (clienteSeccion) {
+        clienteSeccion.style.display = 'none';
+      }
+    } else {
+      console.log('❌ Firma del cliente no encontrada');
+      firmaClienteGuardada = false;
+    }
+  }
+  
+  // Actualizar estado de firmas
+  actualizarEstadoFirmas();
+  
+  // Verificar si el contrato ya está completamente firmado (solo en admin)
+  if (esPanelAdmin && firmaRepresentanteGuardada) {
+    console.log('🎯 Firma del representante completada - mostrando opciones de finalización');
+    mostrarOpcionesFinalizacion();
+  } else if (!esPanelAdmin && firmaRepresentanteGuardada && firmaClienteGuardada) {
+    console.log('🎯 Contrato completamente firmado - habilitando finalización');
+    mostrarContratoCompletamenteFirmado();
+  }
+}
+
+// ===== MOSTRAR OPCIONES DE FINALIZACIÓN (ADMIN) =====
+function mostrarOpcionesFinalizacion() {
+  const firmaPadContainer = document.querySelector('.firma-pad-container');
+  
+  // Crear mensaje de confirmación
+  const mensajeConfirmacion = document.createElement('div');
+  mensajeConfirmacion.className = 'firma-representante-completada';
+  mensajeConfirmacion.innerHTML = `
+    <div style="text-align: center; padding: 20px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 2px solid #10b981; margin: 20px 0;">
+      <h3 style="color: #10b981; margin-bottom: 10px;">✅ Firma del Representante Completada</h3>
+      <p style="color: #10b981; margin-bottom: 15px;">La firma del representante legal ha sido guardada exitosamente.</p>
+      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button onclick="generarLinkCliente()" class="btn btn-primary" style="background: #3b82f6; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+          🔗 Generar Link para Cliente
+        </button>
+        <button onclick="enviarEmailCliente()" class="btn btn-success" style="background: #10b981; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+          📧 Enviar Email al Cliente
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Insertar mensaje al inicio del contenedor
+  firmaPadContainer.insertBefore(mensajeConfirmacion, firmaPadContainer.firstChild);
+}
+
+// ===== MOSTRAR CONTRATO COMPLETAMENTE FIRMADO =====
+function mostrarContratoCompletamenteFirmado() {
+  const firmaPadContainer = document.querySelector('.firma-pad-container');
+  
+  // Crear mensaje de confirmación
+  const mensajeConfirmacion = document.createElement('div');
+  mensajeConfirmacion.className = 'contrato-completamente-firmado';
+  mensajeConfirmacion.innerHTML = `
+    <div style="text-align: center; padding: 20px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 2px solid #10b981; margin: 20px 0;">
+      <h3 style="color: #10b981; margin-bottom: 10px;">🎉 ¡Contrato Completamente Firmado!</h3>
+      <p style="color: #10b981; margin-bottom: 15px;">Ambas firmas han sido completadas. El contrato está listo para ser finalizado.</p>
+      <button onclick="finalizarContrato()" class="btn btn-success" style="background: #10b981; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+        ✅ Finalizar Contrato
+      </button>
+    </div>
+  `;
+  
+  // Insertar mensaje al inicio del contenedor
+  firmaPadContainer.insertBefore(mensajeConfirmacion, firmaPadContainer.firstChild);
+}
+
 // ===== RENDERIZAR RESUMEN DEL CONTRATO =====
 function renderizarResumenContrato() {
   if (!contratoActual) return;
+  
+  // Determinar el estado correcto del contrato
+  const tieneFirmaRepresentante = !!contratoActual.firmaRepresentanteBase64;
+  const tieneFirmaCliente = !!contratoActual.firmaClienteBase64;
+  const estadoReal = (tieneFirmaRepresentante && tieneFirmaCliente) ? 'Firmado' : 'Pendiente de Firma';
   
   const resumenHTML = `
     <div class="detalle-seccion">
       <h4>📋 Información General</h4>
       <p><strong>Título:</strong> ${contratoActual.tituloContrato || 'Sin título'}</p>
       <p><strong>Código:</strong> ${contratoActual.codigoCotizacion || 'Sin código'}</p>
-      <p><strong>Estado:</strong> <span class="estado-badge estado-${contratoActual.estadoContrato ? contratoActual.estadoContrato.toLowerCase().replace(/\s+/g, '-') : 'pendiente-de-firma'}">${contratoActual.estadoContrato || 'Pendiente de Firma'}</span></p>
+      <p><strong>Estado:</strong> <span class="estado-badge estado-${estadoReal.toLowerCase().replace(/\s+/g, '-')}">${estadoReal}</span></p>
       <p><strong>Fecha de Creación:</strong> ${formatearFecha(contratoActual.fechaCreacionContrato)}</p>
     </div>
     
@@ -226,18 +394,22 @@ function inicializarSignaturePads() {
       penWidth: 2
     });
     
-    // Inicializar SignaturePad para cliente
-    signaturePadCliente = new SignaturePad(firmaClienteCanvas, {
-      backgroundColor: 'rgb(250, 250, 250)',
-      penColor: 'rgb(0, 0, 0)',
-      penWidth: 2
-    });
+    // Solo inicializar SignaturePad para cliente si NO estamos en el panel de administración
+    if (!esPanelAdmin && firmaClienteCanvas) {
+      signaturePadCliente = new SignaturePad(firmaClienteCanvas, {
+        backgroundColor: 'rgb(250, 250, 250)',
+        penColor: 'rgb(0, 0, 0)',
+        penWidth: 2
+      });
+    }
     
     console.log('✅ SignaturePads inicializados correctamente');
     
     // Hacer disponibles globalmente para debugging
     window.signaturePadRepresentante = signaturePadRepresentante;
-    window.signaturePadCliente = signaturePadCliente;
+    if (signaturePadCliente) {
+      window.signaturePadCliente = signaturePadCliente;
+    }
     
   } catch (error) {
     console.error('❌ Error al inicializar SignaturePads:', error);
@@ -303,13 +475,16 @@ async function guardarFirmaRepresentante() {
     console.log('✅ Firma del representante guardada exitosamente');
     mostrarNotificacion('Firma del representante guardada exitosamente', 'success');
     
+    // Mostrar opciones de finalización
+    mostrarOpcionesFinalizacion();
+    
   } catch (error) {
     console.error('❌ Error al guardar firma del representante:', error);
     mostrarNotificacion('Error al guardar la firma del representante: ' + error.message, 'error');
   }
 }
 
-// ===== FUNCIONES DE FIRMA DEL CLIENTE =====
+// ===== FUNCIONES DE FIRMA DEL CLIENTE (solo para cliente) =====
 function limpiarFirmaCliente() {
   if (signaturePadCliente) {
     signaturePadCliente.clear();
@@ -357,13 +532,50 @@ async function guardarFirmaCliente() {
     console.log('✅ Firma del cliente guardada exitosamente');
     mostrarNotificacion('Firma del cliente guardada exitosamente', 'success');
     
+    // Verificar si ahora el contrato está completamente firmado
+    if (firmaRepresentanteGuardada && firmaClienteGuardada) {
+      console.log('🎯 Contrato completamente firmado después de agregar firma del cliente');
+      mostrarContratoCompletamenteFirmado();
+    }
+    
   } catch (error) {
     console.error('❌ Error al guardar firma del cliente:', error);
     mostrarNotificacion('Error al guardar la firma del cliente: ' + error.message, 'error');
   }
 }
 
-// ===== ACTUALIZAR ESTADO DE LAS FIRMAS =====
+// ===== FUNCIONES PARA ADMIN (GENERAR LINK Y ENVIAR EMAIL) =====
+function generarLinkCliente() {
+  if (!contratoActual) {
+    mostrarNotificacion('Error: No hay contrato cargado', 'error');
+    return;
+  }
+  
+  // Redirigir a la página de enviar firma
+  const url = `enviar-firma.html?id=${contratoActual.id}`;
+  window.location.href = url;
+}
+
+async function enviarEmailCliente() {
+  if (!contratoActual) {
+    mostrarNotificacion('Error: No hay contrato cargado', 'error');
+    return;
+  }
+  
+  try {
+    console.log('📧 Enviando email al cliente...');
+    
+    // Redirigir a la página de enviar firma con EmailJS
+    const url = `enviar-firma.html?id=${contratoActual.id}`;
+    window.location.href = url;
+    
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error);
+    mostrarNotificacion('Error al enviar email: ' + error.message, 'error');
+  }
+}
+
+// ===== ACTUALIZAR ESTADO DE FIRMAS =====
 function actualizarEstadoFirmas() {
   const statusRepresentante = document.getElementById('status-representante');
   const textoStatusRepresentante = document.getElementById('texto-status-representante');
@@ -381,24 +593,46 @@ function actualizarEstadoFirmas() {
     textoStatusRepresentante.textContent = 'Pendiente';
   }
   
-  // Actualizar estado del cliente
-  if (firmaClienteGuardada) {
-    statusCliente.textContent = '✅';
-    statusCliente.className = 'status-icon completado';
-    textoStatusCliente.textContent = 'Completada';
-  } else {
-    statusCliente.textContent = '⏳';
-    statusCliente.className = 'status-icon pendiente';
-    textoStatusCliente.textContent = 'Pendiente';
+  // Solo actualizar estado del cliente si NO estamos en el panel de administración
+  if (!esPanelAdmin && statusCliente && textoStatusCliente) {
+    if (firmaClienteGuardada) {
+      statusCliente.textContent = '✅';
+      statusCliente.className = 'status-icon completado';
+      textoStatusCliente.textContent = 'Completada';
+    } else {
+      statusCliente.textContent = '⏳';
+      statusCliente.className = 'status-icon pendiente';
+      textoStatusCliente.textContent = 'Pendiente';
+    }
   }
   
-  // Habilitar/deshabilitar botón finalizar
-  if (firmaRepresentanteGuardada && firmaClienteGuardada) {
-    btnFinalizar.disabled = false;
-    btnFinalizar.textContent = 'Finalizar Contrato (Ambas firmas completadas)';
+  // Habilitar/deshabilitar botón finalizar según el contexto
+  if (esPanelAdmin) {
+    // En admin, solo habilitar si la firma del representante está completa
+    if (firmaRepresentanteGuardada) {
+      btnFinalizar.disabled = false;
+      btnFinalizar.textContent = 'Firma del Representante Completada';
+      btnFinalizar.style.background = 'linear-gradient(135deg, #00B8D9 0%, #FF4EFF 100%)';
+      btnFinalizar.style.color = 'white';
+    } else {
+      btnFinalizar.disabled = true;
+      btnFinalizar.textContent = 'Guardar Firma Representante';
+      btnFinalizar.style.background = 'rgba(255, 255, 255, 0.1)';
+      btnFinalizar.style.color = 'var(--color-text-secondary)';
+    }
   } else {
-    btnFinalizar.disabled = true;
-    btnFinalizar.textContent = 'Finalizar Contrato (Requiere ambas firmas)';
+    // En cliente, habilitar solo si ambas firmas están completas
+    if (firmaRepresentanteGuardada && firmaClienteGuardada) {
+      btnFinalizar.disabled = false;
+      btnFinalizar.textContent = 'Finalizar Contrato (Ambas firmas completadas)';
+      btnFinalizar.style.background = 'linear-gradient(135deg, #00B8D9 0%, #FF4EFF 100%)';
+      btnFinalizar.style.color = 'white';
+    } else {
+      btnFinalizar.disabled = true;
+      btnFinalizar.textContent = 'Finalizar Contrato (Requiere ambas firmas)';
+      btnFinalizar.style.background = 'rgba(255, 255, 255, 0.1)';
+      btnFinalizar.style.color = 'var(--color-text-secondary)';
+    }
   }
 }
 
@@ -409,9 +643,18 @@ async function finalizarContrato() {
     return;
   }
   
-  if (!firmaRepresentanteGuardada || !firmaClienteGuardada) {
-    mostrarNotificacion('Error: Se requieren ambas firmas para finalizar el contrato', 'error');
-    return;
+  if (esPanelAdmin) {
+    // En admin, solo verificar firma del representante
+    if (!firmaRepresentanteGuardada) {
+      mostrarNotificacion('Error: Se requiere la firma del representante para continuar', 'error');
+      return;
+    }
+  } else {
+    // En cliente, verificar ambas firmas
+    if (!firmaRepresentanteGuardada || !firmaClienteGuardada) {
+      mostrarNotificacion('Error: Se requieren ambas firmas para finalizar el contrato', 'error');
+      return;
+    }
   }
   
   try {
@@ -437,7 +680,7 @@ async function finalizarContrato() {
     console.log('💰 Contrato válido - valor sumado al dashboard');
     
     // Mostrar notificación de éxito
-    mostrarNotificacion('¡Contrato finalizado exitosamente! Ambas firmas completadas.', 'success');
+    mostrarNotificacion('¡Contrato finalizado exitosamente!', 'success');
     
     // Redirigir de vuelta al panel de contratos después de 2 segundos
     setTimeout(() => {
@@ -476,7 +719,7 @@ function formatearFecha(fecha) {
   
   return fechaObj.toLocaleDateString('es-CL', {
     year: 'numeric',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -511,4 +754,6 @@ window.guardarFirmaRepresentante = guardarFirmaRepresentante;
 window.limpiarFirmaCliente = limpiarFirmaCliente;
 window.guardarFirmaCliente = guardarFirmaCliente;
 window.finalizarContrato = finalizarContrato;
+window.generarLinkCliente = generarLinkCliente;
+window.enviarEmailCliente = enviarEmailCliente;
 window.mostrarNotificacion = mostrarNotificacion; 

@@ -123,6 +123,10 @@ async function cargarContratos() {
     
     actualizarEstadisticas();
     renderizarContratos();
+    
+    // Verificar y actualizar automáticamente el estado de firmas
+    await verificarYActualizarEstadoFirmas();
+    
     mostrarLoading(false);
     mostrarNoData(false);
     
@@ -163,12 +167,16 @@ function actualizarEstadisticas() {
 function renderizarContratos() {
   if (!contratosList) return;
   
+  console.log('🎨 Renderizando contratos...');
+  console.log('📊 Total de contratos:', contratos.length);
+  
   if (contratos.length === 0) {
     contratosList.innerHTML = '<div class="no-data">No hay contratos disponibles</div>';
     return;
   }
   
-  const html = contratos.map(contrato => `
+  const html = contratos.map(contrato => {
+    return `
     <div class="cotizacion-card">
       <div class="cotizacion-header">
         <h3>${contrato.tituloContrato || contrato.codigoCotizacion || 'Sin título'}</h3>
@@ -233,7 +241,12 @@ function renderizarContratos() {
         </button>
         ` : ''}
         ${contrato.estadoContrato === 'Pendiente de Firma' ? `
-        <button class="btn btn-action btn-primary" onclick="enviarFirmaContrato('${contrato.id}')" title="Enviar Firma">
+        <button class="btn btn-action btn-success" onclick="console.log('🔘 Botón Firmar como Representante clickeado'); firmarComoRepresentante('${contrato.id}')" title="Firmar como Representante">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </button>
+        <button class="btn btn-action btn-primary" onclick="enviarFirmaContrato('${contrato.id}')" title="Enviar Firma al Cliente">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
           </svg>
@@ -241,7 +254,8 @@ function renderizarContratos() {
         ` : ''}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   
   contratosList.innerHTML = html;
 }
@@ -419,7 +433,12 @@ function renderizarContratosFiltrados(contratosFiltrados) {
         </button>
         ` : ''}
         ${contrato.estadoContrato === 'Pendiente de Firma' ? `
-        <button class="btn btn-action btn-primary" onclick="enviarFirmaContrato('${contrato.id}')" title="Enviar Firma">
+        <button class="btn btn-action btn-success" onclick="console.log('🔘 Botón Firmar como Representante clickeado (filtrado)'); firmarComoRepresentante('${contrato.id}')" title="Firmar como Representante">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </button>
+        <button class="btn btn-action btn-primary" onclick="enviarFirmaContrato('${contrato.id}')" title="Enviar Firma al Cliente">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
           </svg>
@@ -1055,25 +1074,46 @@ async function eliminarContrato(contratoId) {
   }
   
   try {
+    console.log('🗑️ Eliminando contrato:', contratoId);
+    
     // Importar Firebase dinámicamente
     const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
     
-    const docRef = doc(window.db, 'contratos', contratoId);
-    await deleteDoc(docRef);
+    // Eliminar de Firestore
+    const contratoRef = doc(window.db, 'contratos', contratoId);
+    await deleteDoc(contratoRef);
     
-    // Remover del array local
-    contratos = contratos.filter(c => c.id !== contratoId);
+    console.log('✅ Contrato eliminado exitosamente');
+    mostrarNotificacion('Contrato eliminado exitosamente', 'success');
     
-    // Actualizar interfaz
-    actualizarEstadisticas();
-    renderizarContratos();
-    
-    alert('Contrato eliminado correctamente');
+    // Recargar contratos
+    cargarContratos();
     
   } catch (error) {
-    console.error('Error al eliminar contrato:', error);
-    alert('Error al eliminar el contrato');
+    console.error('❌ Error al eliminar contrato:', error);
+    mostrarNotificacion('Error al eliminar contrato: ' + error.message, 'error');
   }
+}
+
+// ===== NUEVA FUNCIÓN PARA FIRMAR COMO REPRESENTANTE =====
+function firmarComoRepresentante(contratoId) {
+  console.log('✍️ Función firmarComoRepresentante ejecutada');
+  console.log('✍️ ID del contrato:', contratoId);
+  console.log('✍️ Redirigiendo a firma como representante para contrato:', contratoId);
+  
+  // Verificar que el contrato existe
+  const contrato = contratos.find(c => c.id === contratoId);
+  if (!contrato) {
+    console.error('❌ Contrato no encontrado:', contratoId);
+    mostrarNotificacion('Error: Contrato no encontrado', 'error');
+    return;
+  }
+  
+  console.log('✅ Contrato encontrado:', contrato.tituloContrato);
+  console.log('✅ URL de redirección:', `firmar-contrato.html?id=${contratoId}`);
+  
+  // Redirigir a la página de firma con el ID del contrato
+  window.location.href = `firmar-contrato.html?id=${contratoId}`;
 }
 
 // Hacer funciones disponibles globalmente
@@ -1094,4 +1134,149 @@ window.editarContratoDesdeDetalles = editarContratoDesdeDetalles;
 window.mostrarModalCompletarContrato = mostrarModalCompletarContrato;
 window.cerrarModalCompletarContrato = cerrarModalCompletarContrato;
 window.guardarContratoCompletado = guardarContratoCompletado;
-window.enviarFirmaContrato = enviarFirmaContrato; 
+window.enviarFirmaContrato = enviarFirmaContrato;
+window.firmarComoRepresentante = firmarComoRepresentante; 
+
+// ===== VERIFICAR Y ACTUALIZAR ESTADO AUTOMÁTICO DE FIRMAS =====
+async function verificarYActualizarEstadoFirmas() {
+  console.log('🔍 Verificando estado automático de firmas...');
+  
+  try {
+    // Importar Firebase dinámicamente
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    let contratosActualizados = 0;
+    
+    // Revisar cada contrato en el array local
+    for (const contrato of contratos) {
+      // Solo verificar contratos que estén en "Pendiente de Firma"
+      if (contrato.estadoContrato === 'Pendiente de Firma') {
+        const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+        const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+        
+        // Si tiene ambas firmas, actualizar automáticamente el estado
+        if (tieneFirmaRepresentante && tieneFirmaCliente) {
+          console.log(`✅ Contrato ${contrato.codigoCotizacion} tiene ambas firmas - actualizando a Firmado`);
+          
+          // Actualizar en Firestore
+          const contratoRef = doc(window.db, 'contratos', contrato.id);
+          await updateDoc(contratoRef, {
+            estadoContrato: 'Firmado',
+            fechaFirmaFinal: new Date(),
+            contratoValido: true,
+            esPreContrato: false,
+            fechaCompletado: new Date(),
+            ambasFirmasCompletadas: true
+          });
+          
+          // Actualizar el array local
+          contrato.estadoContrato = 'Firmado';
+          contrato.fechaFirmaFinal = new Date();
+          contrato.contratoValido = true;
+          contrato.esPreContrato = false;
+          contrato.fechaCompletado = new Date();
+          contrato.ambasFirmasCompletadas = true;
+          
+          contratosActualizados++;
+        }
+      }
+    }
+    
+    if (contratosActualizados > 0) {
+      console.log(`✅ ${contratosActualizados} contratos actualizados automáticamente a Firmado`);
+      // Actualizar la interfaz
+      actualizarEstadisticas();
+      renderizarContratos();
+      mostrarNotificacion(`${contratosActualizados} contratos actualizados automáticamente a Firmado`, 'success');
+    } else {
+      console.log('ℹ️ No se encontraron contratos que requieran actualización automática');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al verificar estado automático de firmas:', error);
+  }
+} 
+
+// ===== FUNCIÓN MANUAL PARA CORREGIR ESTADOS DE CONTRATOS =====
+async function corregirEstadosContratosManual() {
+  console.log('🔧 Iniciando corrección manual de estados de contratos...');
+  
+  try {
+    // Importar Firebase dinámicamente
+    const { collection, query, getDocs, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    
+    // Obtener todos los contratos
+    const contratosQuery = query(collection(window.db, 'contratos'));
+    const contratosSnapshot = await getDocs(contratosQuery);
+    
+    let contratosActualizados = 0;
+    let contratosRevisados = 0;
+    
+    console.log(`📊 Revisando ${contratosSnapshot.size} contratos...`);
+    
+    // Revisar cada contrato
+    for (const docSnapshot of contratosSnapshot.docs) {
+      const contrato = docSnapshot.data();
+      contratosRevisados++;
+      
+      // Verificar si tiene ambas firmas pero está en estado incorrecto
+      const tieneFirmaRepresentante = !!contrato.firmaRepresentanteBase64;
+      const tieneFirmaCliente = !!contrato.firmaClienteBase64;
+      const estadoActual = contrato.estadoContrato;
+      
+      if (tieneFirmaRepresentante && tieneFirmaCliente) {
+        // Si tiene ambas firmas pero no está marcado como Firmado
+        if (estadoActual !== 'Firmado' && estadoActual !== 'Finalizado') {
+          console.log(`🔄 Corrigiendo contrato ${contrato.codigoCotizacion || docSnapshot.id}: ${estadoActual} → Firmado`);
+          
+          // Actualizar en Firestore
+          const contratoRef = doc(window.db, 'contratos', docSnapshot.id);
+          await updateDoc(contratoRef, {
+            estadoContrato: 'Firmado',
+            fechaFirmaFinal: new Date(),
+            contratoValido: true,
+            esPreContrato: false,
+            fechaCompletado: new Date(),
+            ambasFirmasCompletadas: true
+          });
+          
+          contratosActualizados++;
+        }
+      } else if (tieneFirmaRepresentante || tieneFirmaCliente) {
+        // Si tiene solo una firma, asegurar que esté en estado correcto
+        if (estadoActual !== 'Pendiente de Firma' && estadoActual !== 'Enviado') {
+          console.log(`🔄 Corrigiendo contrato ${contrato.codigoCotizacion || docSnapshot.id}: ${estadoActual} → Pendiente de Firma`);
+          
+          const contratoRef = doc(window.db, 'contratos', docSnapshot.id);
+          await updateDoc(contratoRef, {
+            estadoContrato: 'Pendiente de Firma'
+          });
+          
+          contratosActualizados++;
+        }
+      }
+    }
+    
+    console.log(`✅ Corrección completada:`);
+    console.log(`   - Contratos revisados: ${contratosRevisados}`);
+    console.log(`   - Contratos actualizados: ${contratosActualizados}`);
+    
+    if (contratosActualizados > 0) {
+      mostrarNotificacion(`✅ ${contratosActualizados} contratos corregidos automáticamente`, 'success');
+      
+      // Recargar contratos si estamos en la página de contratos
+      if (typeof cargarContratos === 'function') {
+        await cargarContratos();
+      }
+    } else {
+      mostrarNotificacion('ℹ️ No se encontraron contratos que requieran corrección', 'info');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al corregir estados de contratos:', error);
+    mostrarNotificacion('Error al corregir estados de contratos: ' + error.message, 'error');
+  }
+}
+
+// Hacer la función disponible globalmente
+window.corregirEstadosContratosManual = corregirEstadosContratosManual; 

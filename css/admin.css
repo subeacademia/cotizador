@@ -219,6 +219,17 @@ body {
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
+.btn-warning {
+  background: linear-gradient(135deg, var(--color-warning), #d97706);
+  color: var(--color-text-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-warning:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
 .btn-logout {
   background: linear-gradient(135deg, var(--color-danger), #dc2626);
   color: var(--color-text-primary);
