@@ -7,15 +7,7 @@ let firmaClienteGuardada = false;
 let esPanelAdmin = true; // Flag para identificar si estamos en el panel de administración
 
 // Elementos del DOM
-const loadingFirma = document.getElementById('loading-firma');
-const errorFirma = document.getElementById('error-firma');
-const contenidoFirma = document.getElementById('contenido-firma');
-const resumenContrato = document.getElementById('resumen-contrato');
-const firmaRepresentanteCanvas = document.getElementById('firma-representante');
-const firmaClienteCanvas = document.getElementById('firma-cliente');
-const nombreCliente = document.getElementById('nombre-cliente');
-const empresaCliente = document.getElementById('empresa-cliente');
-const btnFinalizar = document.getElementById('btn-finalizar');
+let loadingFirma, errorFirma, contenidoFirma, resumenContrato, firmaRepresentanteCanvas, firmaClienteCanvas, nombreCliente, empresaCliente, btnFinalizar;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -89,6 +81,19 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
 // ===== INICIALIZACIÓN DEL SISTEMA DE FIRMA =====
 async function inicializarFirma() {
   try {
+    // Inicializar elementos del DOM
+    loadingFirma = document.getElementById('loading-firma');
+    errorFirma = document.getElementById('error-firma');
+    contenidoFirma = document.getElementById('contenido-firma');
+    resumenContrato = document.getElementById('resumen-contrato');
+    firmaRepresentanteCanvas = document.getElementById('firma-representante');
+    firmaClienteCanvas = document.getElementById('firma-cliente');
+    nombreCliente = document.getElementById('nombre-cliente');
+    empresaCliente = document.getElementById('empresa-cliente');
+    btnFinalizar = document.getElementById('btn-finalizar');
+    
+    console.log('🔍 Elementos del DOM inicializados, btnFinalizar:', !!btnFinalizar);
+    
     // Obtener ID del contrato desde la URL
     const urlParams = new URLSearchParams(window.location.search);
     const contratoId = urlParams.get('id');
@@ -194,6 +199,7 @@ function verificarFirmasExistentes() {
   if (contratoActual.firmaRepresentanteBase64) {
     console.log('✅ Firma del representante encontrada');
     firmaRepresentanteGuardada = true;
+    console.log('📝 Variable firmaRepresentanteGuardada establecida a:', firmaRepresentanteGuardada);
     
     // Mostrar firma existente en el canvas
     if (signaturePadRepresentante) {
@@ -275,6 +281,9 @@ function mostrarOpcionesFinalizacion() {
         </button>
         <button onclick="enviarEmailCliente()" class="btn btn-success" style="background: #10b981; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
           📧 Enviar Email al Cliente
+        </button>
+        <button onclick="window.location.href='contratos.html'" class="btn btn-secondary" style="background: #6b7280; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+          📋 Volver a Contratos
         </button>
       </div>
     </div>
@@ -475,8 +484,10 @@ async function guardarFirmaRepresentante() {
     console.log('✅ Firma del representante guardada exitosamente');
     mostrarNotificacion('Firma del representante guardada exitosamente', 'success');
     
-    // Mostrar opciones de finalización
-    mostrarOpcionesFinalizacion();
+    // Redirigir al listado de contratos después de 2 segundos
+    setTimeout(() => {
+      window.location.href = 'contratos.html';
+    }, 2000);
     
   } catch (error) {
     console.error('❌ Error al guardar firma del representante:', error);
@@ -577,6 +588,9 @@ async function enviarEmailCliente() {
 
 // ===== ACTUALIZAR ESTADO DE FIRMAS =====
 function actualizarEstadoFirmas() {
+  console.log('🔄 Actualizando estado de firmas...');
+  console.log('📊 Estado actual - firmaRepresentanteGuardada:', firmaRepresentanteGuardada, 'firmaClienteGuardada:', firmaClienteGuardada);
+  
   const statusRepresentante = document.getElementById('status-representante');
   const textoStatusRepresentante = document.getElementById('texto-status-representante');
   const statusCliente = document.getElementById('status-cliente');
@@ -608,17 +622,24 @@ function actualizarEstadoFirmas() {
   
   // Habilitar/deshabilitar botón finalizar según el contexto
   if (esPanelAdmin) {
+    console.log('🏢 Actualizando botón para admin, firmaRepresentanteGuardada:', firmaRepresentanteGuardada);
+    console.log('🔍 Botón finalizar encontrado:', !!btnFinalizar);
+    
     // En admin, solo habilitar si la firma del representante está completa
     if (firmaRepresentanteGuardada) {
       btnFinalizar.disabled = false;
-      btnFinalizar.textContent = 'Firma del Representante Completada';
+      btnFinalizar.textContent = 'Finalizar Firma';
+      btnFinalizar.onclick = () => window.location.href = 'contratos.html';
       btnFinalizar.style.background = 'linear-gradient(135deg, #00B8D9 0%, #FF4EFF 100%)';
       btnFinalizar.style.color = 'white';
+      console.log('✅ Botón actualizado a: Finalizar Firma');
     } else {
       btnFinalizar.disabled = true;
       btnFinalizar.textContent = 'Guardar Firma Representante';
+      btnFinalizar.onclick = guardarFirmaRepresentante;
       btnFinalizar.style.background = 'rgba(255, 255, 255, 0.1)';
       btnFinalizar.style.color = 'var(--color-text-secondary)';
+      console.log('⏳ Botón actualizado a: Guardar Firma Representante');
     }
   } else {
     // En cliente, habilitar solo si ambas firmas están completas
@@ -740,10 +761,10 @@ function mostrarContenido() {
 
 // ===== RESPONSIVE DESIGN =====
 window.addEventListener('resize', () => {
-  if (signaturePadRepresentante) {
+  if (signaturePadRepresentante && signaturePadRepresentante.resizeCanvas) {
     signaturePadRepresentante.resizeCanvas();
   }
-  if (signaturePadCliente) {
+  if (signaturePadCliente && signaturePadCliente.resizeCanvas) {
     signaturePadCliente.resizeCanvas();
   }
 });

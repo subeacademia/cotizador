@@ -46,7 +46,7 @@ export function renderInvoice({nombre, email, rut, empresa, moneda, codigo, fech
         </tr>
       </thead>
       <tbody>
-        ${serviciosData.map(s => {
+        ${(serviciosData || []).map(s => {
           let cantidadValor = '-';
           let tipoCobroTexto = '';
           if (s.tipoCobro === 'sesion') {
@@ -60,19 +60,19 @@ export function renderInvoice({nombre, email, rut, empresa, moneda, codigo, fech
             tipoCobroTexto = '<div style="font-size:0.85em;color:#888;">Total directo</div>';
           }
           return `<tr>
-            <td>${s.nombre}</td>
-            <td>${s.detalle}</td>
+            <td>${s.nombre || ''}</td>
+            <td>${s.detalle || ''}</td>
             <td>${s.modalidad || '-'}</td>
             <td>${cantidadValor}${tipoCobroTexto}</td>
-            <td style="text-align:right;">${s.subtotal.toLocaleString()}</td>
+            <td style="text-align:right;">${(s.subtotal || 0).toLocaleString()}</td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
     <hr class="gradient">
-    <div class="total-row" style="color:#00B8D9;font-weight:bold;">Total: ${total.toLocaleString()} ${moneda}</div>
+    <div class="total-row" style="color:#00B8D9;font-weight:bold;">Total: ${(total || 0).toLocaleString()} ${moneda || 'CLP'}</div>
     ${descuentoTexto}
-    ${descuento && !isNaN(descuento) && descuento > 0 ? `<div class="total-row" style="color:#00B8D9;font-weight:bold;">Total con descuento: <b>${totalConDescuento.toLocaleString()} ${moneda}</b></div>` : ''}
+    ${descuento && !isNaN(descuento) && descuento > 0 ? `<div class="total-row" style="color:#00B8D9;font-weight:bold;">Total con descuento: <b>${totalConDescuento.toLocaleString()} ${moneda || 'CLP'}</b></div>` : ''}
     <div class="validez" style="color:#23263A;">Válido 15 días</div>
     <div class="atendido-por" style="color:#23263A;"><b>Atendido por:</b> ${atendedor}</div>
     <div class="condiciones" style="color:#23263A;"><small>Condiciones de pago: 50% al aceptar, 50% contra entrega. Consultas: contacto@subeia.tech</small></div>

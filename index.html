@@ -99,6 +99,17 @@
       cursor: not-allowed;
       transform: none;
     }
+    
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn-group .btn {
+      flex: 1;
+    }
+    
     .btn-logout {
       background: #dc3545;
       width: auto;
@@ -205,6 +216,31 @@
         </div>
         
         <div class="form-group">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" placeholder="+56 9 1234 5678">
+        </div>
+        
+        <div class="form-group">
+          <label for="direccion">Dirección</label>
+          <input type="text" id="direccion" placeholder="Av. Providencia 1234">
+        </div>
+        
+        <div class="form-group">
+          <label for="comuna">Comuna</label>
+          <input type="text" id="comuna" placeholder="Providencia">
+        </div>
+        
+        <div class="form-group">
+          <label for="ciudad">Ciudad</label>
+          <input type="text" id="ciudad" placeholder="Santiago">
+        </div>
+        
+        <div class="form-group">
+          <label for="region">Región</label>
+          <input type="text" id="region" placeholder="Metropolitana">
+        </div>
+        
+        <div class="form-group">
           <label for="moneda">Moneda *</label>
           <select id="moneda" required>
             <option value="CLP">CLP</option>
@@ -271,9 +307,17 @@
           <textarea id="notas" rows="3" placeholder="Agrega detalles, condiciones, observaciones, etc."></textarea>
         </div>
         
-        <button type="button" class="btn" id="descargar-pdf">
-          📄 Generar PDF
-        </button>
+        <div class="btn-group" style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn" id="preview-pdf" style="flex: 1;">
+            👁️ Previsualizar
+          </button>
+          <button type="button" class="btn" id="descargar-pdf" style="flex: 1;">
+            📄 Generar PDF
+          </button>
+          <button type="button" class="btn" id="enviar-cotizacion" style="flex: 1;">
+            📧 Enviar al Cliente
+          </button>
+        </div>
       </form>
       
       <div id="result" class="result" style="display: none;"></div>

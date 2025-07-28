@@ -331,6 +331,10 @@
     async function mostrarCotizacion(datos) {
       try {
         console.log('📋 Mostrando cotización con datos:', datos);
+        console.log('💰 Total original:', datos.total);
+        console.log('💰 Total con descuento:', datos.totalConDescuento);
+        console.log('💰 Moneda:', datos.moneda);
+        console.log('💰 Servicios:', datos.servicios);
         
         // Importar la plantilla
         const { renderInvoice } = await import('./templates/invoice-template.js');
@@ -338,21 +342,23 @@
         
         // Preparar datos para la plantilla
         const datosPlantilla = {
-          nombre: datos.nombre,
-          email: datos.email,
-          rut: datos.rut,
-          empresa: datos.empresa,
-          moneda: 'CLP',
-          codigo: datos.codigo,
-          fecha: datos.fecha,
-          serviciosData: datos.servicios,
-          total: datos.total,
-          atendedor: datos.atendido,
-          notasAdicionales: datos.notas,
-          descuento: datos.descuento
+          nombre: datos.nombre || '',
+          email: datos.email || '',
+          rut: datos.rut || '',
+          empresa: datos.empresa || '',
+          moneda: datos.moneda || 'CLP',
+          codigo: datos.codigo || '',
+          fecha: datos.fecha || new Date().toLocaleDateString('es-CL'),
+          serviciosData: datos.servicios || [],
+          total: datos.total || datos.totalConDescuento || 0,
+          atendedor: datos.atendido || 'No especificado',
+          notasAdicionales: datos.notas || '',
+          descuento: datos.descuento || 0
         };
         
         console.log('📋 Datos preparados para plantilla:', datosPlantilla);
+        console.log('💰 Total final para plantilla:', datosPlantilla.total);
+        console.log('💰 Moneda final para plantilla:', datosPlantilla.moneda);
         
         // Generar HTML
         const html = renderInvoice(datosPlantilla);

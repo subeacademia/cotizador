@@ -355,8 +355,22 @@ function generarPDF(datos) {
     tempDiv.style.left = '-9999px';
     tempDiv.style.top = '-9999px';
     
-    // Generar HTML de la factura
-    const htmlContent = renderInvoice(datos);
+    // Generar HTML de la factura directamente con los datos
+    const htmlContent = renderInvoice({
+      nombre: datos.nombre,
+      email: datos.email,
+      rut: datos.rut,
+      empresa: datos.empresa,
+      moneda: datos.moneda,
+      codigo: datos.codigo,
+      fecha: datos.fecha,
+      serviciosData: datos.servicios,
+      total: datos.total,
+      atendedor: datos.atendido,
+      notasAdicionales: datos.notas,
+      descuento: datos.descuento
+    });
+    
     tempDiv.innerHTML = htmlContent;
     
     // Agregar al body
@@ -384,13 +398,126 @@ function generarPDF(datos) {
   }
 }
 
+// Función para previsualizar cotización
+async function previsualizarCotizacion(event) {
+  console.log('👁️ Iniciando previsualización...');
+  
+  // Verificar que el usuario esté autenticado
+  if (!auth.currentUser) {
+    mostrarResultado('❌ Debes iniciar sesión para previsualizar cotizaciones', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('preview-pdf');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Procesando...';
+  }
+  
+  try {
+    // Recopilar datos del formulario
+    console.log('📝 Recopilando datos del formulario...');
+    const datos = recopilarDatosFormulario();
+    
+    if (!datos) {
+      console.log('❌ Recopilación de datos falló, deteniendo proceso');
+      return;
+    }
+    
+    // Guardar en Firestore temporalmente
+    console.log('💾 Guardando en Firestore...');
+    await guardarEnFirestore(datos);
+    console.log('✅ Datos guardados exitosamente en Firestore');
+    
+    mostrarResultado(`✅ Cotización ${datos.codigo} guardada exitosamente!`, 'success');
+    
+    // Redirigir a la página de previsualización
+    console.log('👁️ Redirigiendo a previsualización...');
+    setTimeout(() => {
+      window.location.href = `preview.html?id=${datos.codigo}`;
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ Error en el proceso:', error);
+    mostrarResultado(`❌ Error: ${error.message}`, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '👁️ Previsualizar';
+    }
+  }
+}
+
+// Función para enviar cotización al cliente
+async function enviarCotizacionCliente(event) {
+  console.log('📧 Iniciando envío de cotización...');
+  
+  // Verificar que el usuario esté autenticado
+  if (!auth.currentUser) {
+    mostrarResultado('❌ Debes iniciar sesión para enviar cotizaciones', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('enviar-cotizacion');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Enviando...';
+  }
+  
+  try {
+    // Recopilar datos del formulario
+    console.log('📝 Recopilando datos del formulario...');
+    const datos = recopilarDatosFormulario();
+    
+    if (!datos) {
+      console.log('❌ Recopilación de datos falló, deteniendo proceso');
+      return;
+    }
+    
+    // Guardar en Firestore
+    console.log('💾 Guardando en Firestore...');
+    await guardarEnFirestore(datos);
+    console.log('✅ Datos guardados exitosamente en Firestore');
+    
+    mostrarResultado(`✅ Cotización ${datos.codigo} guardada exitosamente!`, 'success');
+    
+    // Generar PDF y enviar
+    console.log('📄 Generando PDF para envío...');
+    setTimeout(() => {
+      generarPDF(datos);
+      mostrarResultado('📧 PDF generado. Revisa tu carpeta de descargas.', 'success');
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ Error en el proceso:', error);
+    mostrarResultado(`❌ Error: ${error.message}`, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📧 Enviar al Cliente';
+    }
+  }
+}
+
 // Función para guardar en Firestore
 async function guardarEnFirestore(datos) {
   console.log('💾 Guardando en Firestore...');
   
   try {
     const codigo = datos.codigo;
-    await setDoc(doc(db, 'cotizaciones', codigo), datos);
+    
+    // Limpiar datos para evitar valores undefined
+    const datosLimpios = {};
+    Object.keys(datos).forEach(key => {
+      if (datos[key] !== undefined) {
+        datosLimpios[key] = datos[key];
+      } else {
+        datosLimpios[key] = '';
+      }
+    });
+    
+    console.log('🧹 Datos limpios para Firestore:', datosLimpios);
+    await setDoc(doc(db, 'cotizaciones', codigo), datosLimpios);
     console.log('✅ Datos guardados exitosamente en Firestore');
   } catch (error) {
     console.error('❌ Error al guardar en Firestore:', error);
@@ -408,11 +535,11 @@ function recopilarDatosFormulario() {
     const emailCliente = document.getElementById('email-cliente')?.value?.trim();
     const rut = document.getElementById('rut')?.value?.trim();
     const empresa = document.getElementById('empresa')?.value?.trim();
-    const telefono = document.getElementById('telefono')?.value?.trim();
-    const direccion = document.getElementById('direccion')?.value?.trim();
-    const comuna = document.getElementById('comuna')?.value?.trim();
-    const ciudad = document.getElementById('ciudad')?.value?.trim();
-    const region = document.getElementById('region')?.value?.trim();
+    const telefono = document.getElementById('telefono')?.value?.trim() || '';
+    const direccion = document.getElementById('direccion')?.value?.trim() || '';
+    const comuna = document.getElementById('comuna')?.value?.trim() || '';
+    const ciudad = document.getElementById('ciudad')?.value?.trim() || '';
+    const region = document.getElementById('region')?.value?.trim() || '';
     
     // Validar campos obligatorios
     if (!nombre || !emailCliente || !rut) {
@@ -479,30 +606,36 @@ function recopilarDatosFormulario() {
     const codigo = generarCodigo();
     codigoActual++;
     
+    // Obtener moneda
+    const moneda = document.getElementById('moneda')?.value || 'CLP';
+    
+    // Asegurar que ningún campo sea undefined
     const datosCotizacion = {
-      codigo,
-      nombre,
-      email: emailCliente,
-      rut,
-      empresa,
-      telefono,
-      direccion,
-      comuna,
-      ciudad,
-      region,
-      servicios: serviciosSeleccionados,
-      atendido,
-      subtotal,
-      descuento,
-      descuentoValor,
-      totalConDescuento,
-      total: totalConDescuento,
-      notas,
+      codigo: codigo || '',
+      nombre: nombre || '',
+      email: emailCliente || '',
+      rut: rut || '',
+      empresa: empresa || '',
+      telefono: telefono || '',
+      direccion: direccion || '',
+      comuna: comuna || '',
+      ciudad: ciudad || '',
+      region: region || '',
+      moneda: moneda || 'CLP',
+      servicios: serviciosSeleccionados || [],
+      atendido: atendido || 'No especificado',
+      subtotal: subtotal || 0,
+      descuento: descuento || 0,
+      descuentoValor: descuentoValor || 0,
+      totalConDescuento: totalConDescuento || 0,
+      total: totalConDescuento || 0,
+      notas: notas || '',
       fecha: new Date().toLocaleDateString('es-CL'),
       fechaTimestamp: new Date()
     };
     
     console.log('✅ Datos del formulario recopilados exitosamente:', datosCotizacion);
+    console.log('🔍 Verificando campo telefono:', datosCotizacion.telefono, 'tipo:', typeof datosCotizacion.telefono);
     return datosCotizacion;
     
   } catch (error) {
@@ -593,11 +726,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   console.log('✅ Checkboxes de servicios configurados');
   
-  // Configurar botón de generar PDF
+  // Configurar botones
   const btnGenerarPDF = document.getElementById('descargar-pdf');
+  const btnPreviewPDF = document.getElementById('preview-pdf');
+  const btnEnviarCotizacion = document.getElementById('enviar-cotizacion');
+  
   if (btnGenerarPDF) {
     btnGenerarPDF.addEventListener('click', guardarYGenerarCotizacion);
     console.log('✅ Botón de generar PDF configurado');
+  }
+  
+  if (btnPreviewPDF) {
+    btnPreviewPDF.addEventListener('click', previsualizarCotizacion);
+    console.log('✅ Botón de previsualizar configurado');
+  }
+  
+  if (btnEnviarCotizacion) {
+    btnEnviarCotizacion.addEventListener('click', enviarCotizacionCliente);
+    console.log('✅ Botón de enviar cotización configurado');
   }
   
   // Configurar campo de descuento

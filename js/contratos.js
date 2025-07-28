@@ -180,35 +180,27 @@ function renderizarContratos() {
     <div class="cotizacion-card">
       <div class="cotizacion-header">
         <h3>${contrato.tituloContrato || contrato.codigoCotizacion || 'Sin título'}</h3>
-        <span class="fecha">${formatearFecha(contrato.fechaCreacionContrato)}</span>
-        <select class="estado-select" onchange="cambiarEstadoContratoDirecto('${contrato.id}', this.value)">
-          <option value="Pendiente de Completar" ${contrato.estadoContrato === 'Pendiente de Completar' ? 'selected' : ''}>Pendiente de Completar</option>
-          <option value="Pendiente de Firma" ${contrato.estadoContrato === 'Pendiente de Firma' ? 'selected' : ''}>Pendiente de Firma</option>
-          <option value="Enviado" ${contrato.estadoContrato === 'Enviado' ? 'selected' : ''}>Enviado</option>
-          <option value="Firmado" ${contrato.estadoContrato === 'Firmado' ? 'selected' : ''}>Firmado</option>
-          <option value="Finalizado" ${contrato.estadoContrato === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
-        </select>
+        <div class="header-meta">
+          <span class="fecha">${formatearFecha(contrato.fechaCreacionContrato)}</span>
+          <span class="estado ${contrato.estadoContrato?.toLowerCase().replace(/\s+/g, '-')}">${contrato.estadoContrato || 'Pendiente'}</span>
+        </div>
       </div>
       <div class="cotizacion-body">
         <div class="cliente-info">
-          <p><strong>👤 Cliente:</strong> ${contrato.cliente?.nombre || 'No especificado'}</p>
-          <p><strong>🏢 Empresa:</strong> ${contrato.cliente?.empresa || 'No especificada'}</p>
-          <p><strong>📧 Email:</strong> ${contrato.cliente?.email || 'No especificado'}</p>
-          <p><strong>🆔 RUT:</strong> ${contrato.cliente?.rut || 'No especificado'}</p>
+          <p><strong>👤</strong> ${contrato.cliente?.nombre || 'No especificado'}</p>
+          <p><strong>🏢</strong> ${contrato.cliente?.empresa || 'No especificada'}</p>
+          <p><strong>📧</strong> ${contrato.cliente?.email || 'No especificado'}</p>
+          <p><strong>🆔</strong> ${contrato.cliente?.rut || 'No especificado'}</p>
         </div>
-        <p><strong>👨‍💼 Atendido por:</strong> ${contrato.atendido || 'No especificado'}</p>
         <div class="total-info">
           <strong>💰 Total:</strong> $${(contrato.totalConDescuento || contrato.total || 0).toLocaleString()}
           ${contrato.descuento > 0 ? `<br><small>Descuento: ${contrato.descuento}%</small>` : ''}
         </div>
-        <div class="contrato-info">
-          <p><strong>📋 Cotización Original:</strong> ${contrato.cotizacionIdOriginal || 'Contrato directo'}</p>
-          <p><strong>📅 Fecha de Creación:</strong> ${formatearFecha(contrato.fechaCreacionContrato)}</p>
+        <div class="contrato-meta">
+          <p><strong>👨‍💼</strong> ${contrato.atendido || 'No especificado'}</p>
+          <p><strong>📋</strong> ${contrato.cotizacionIdOriginal || 'Contrato directo'}</p>
           ${contrato.estadoContrato === 'Firmado' ? `
-            <p><strong>✅ Firmado por:</strong></p>
-            <p><strong>👤 Representante:</strong> ${contrato.representanteLegal || 'No especificado'}</p>
-            <p><strong>👤 Cliente:</strong> ${contrato.cliente?.nombre || 'No especificado'}</p>
-            <p><strong>📅 Fecha de Firma:</strong> ${formatearFecha(contrato.fechaFirmaFinal)}</p>
+            <p><strong>✅</strong> Firmado ${formatearFecha(contrato.fechaFirmaFinal)}</p>
           ` : ''}
         </div>
       </div>
