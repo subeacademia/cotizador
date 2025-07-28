@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Inicializando sistema de firma digital para representante...');
   
   // Determinar si estamos en el panel de administración
-  esPanelAdmin = window.location.href.includes('firmar-contrato.html');
+  esPanelAdmin = window.location.href.includes('/firmar-contrato');
   console.log('🏢 Panel de administración:', esPanelAdmin);
   
   // Esperar a que Firebase esté disponible
@@ -282,7 +282,7 @@ function mostrarOpcionesFinalizacion() {
         <button onclick="enviarEmailCliente()" class="btn btn-success" style="background: #10b981; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
           📧 Enviar Email al Cliente
         </button>
-        <button onclick="window.location.href='contratos.html'" class="btn btn-secondary" style="background: #6b7280; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+        <button onclick="window.router.navigate('/contratos')" class="btn btn-secondary" style="background: #6b7280; border: none; padding: 12px 24px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
           📋 Volver a Contratos
         </button>
       </div>
@@ -486,7 +486,7 @@ async function guardarFirmaRepresentante() {
     
     // Redirigir al listado de contratos después de 2 segundos
     setTimeout(() => {
-      window.location.href = 'contratos.html';
+      window.router.navigate('/contratos');
     }, 2000);
     
   } catch (error) {
@@ -563,8 +563,7 @@ function generarLinkCliente() {
   }
   
   // Redirigir a la página de enviar firma
-  const url = `enviar-firma.html?id=${contratoActual.id}`;
-  window.location.href = url;
+  window.router.navigate(`/enviar-firma?id=${contratoActual.id}`);
 }
 
 async function enviarEmailCliente() {
@@ -577,8 +576,7 @@ async function enviarEmailCliente() {
     console.log('📧 Enviando email al cliente...');
     
     // Redirigir a la página de enviar firma con EmailJS
-    const url = `enviar-firma.html?id=${contratoActual.id}`;
-    window.location.href = url;
+    window.router.navigate(`/enviar-firma?id=${contratoActual.id}`);
     
   } catch (error) {
     console.error('❌ Error al enviar email:', error);
@@ -629,7 +627,7 @@ function actualizarEstadoFirmas() {
     if (firmaRepresentanteGuardada) {
       btnFinalizar.disabled = false;
       btnFinalizar.textContent = 'Finalizar Firma';
-      btnFinalizar.onclick = () => window.location.href = 'contratos.html';
+      btnFinalizar.onclick = () => window.router.navigate('/contratos');
       btnFinalizar.style.background = 'linear-gradient(135deg, #00B8D9 0%, #FF4EFF 100%)';
       btnFinalizar.style.color = 'white';
       console.log('✅ Botón actualizado a: Finalizar Firma');
@@ -705,7 +703,7 @@ async function finalizarContrato() {
     
     // Redirigir de vuelta al panel de contratos después de 2 segundos
     setTimeout(() => {
-      window.location.href = 'contratos.html';
+      window.router.navigate('/contratos');
     }, 2000);
     
   } catch (error) {

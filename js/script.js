@@ -6,6 +6,8 @@ import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-
 
 // Variables globales
 let codigoActual = 1;
+let modoEdicion = false;
+let cotizacionEditando = null;
 
 // ===== FUNCIONES DE AUTENTICACIÓN =====
 
@@ -179,7 +181,11 @@ function configurarUIUsuarioNoAutenticado() {
 
 // Función para ir al panel de administración
 function irAlAdmin() {
-  window.location.href = 'admin.html';
+  if (window.router) {
+    window.router.navigate('/admin');
+  } else {
+    window.location.href = '/admin';
+  }
 }
 
 // ===== FUNCIONES DEL COTIZADOR =====
@@ -434,7 +440,11 @@ async function previsualizarCotizacion(event) {
     // Redirigir a la página de previsualización
     console.log('👁️ Redirigiendo a previsualización...');
     setTimeout(() => {
-      window.location.href = `preview.html?id=${datos.codigo}`;
+      if (window.router) {
+        window.router.navigate(`/preview?id=${datos.codigo}`);
+      } else {
+        window.location.href = `/preview?id=${datos.codigo}`;
+      }
     }, 1000);
     
   } catch (error) {
@@ -701,6 +711,9 @@ async function guardarYGenerarCotizacion(event) {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM cargado, inicializando cotizador...');
   
+  // Detectar modo de edición
+  const esModoEdicion = detectarModoEdicion();
+  
   // Configurar autenticación
   auth.onAuthStateChanged((user) => {
     if (user) {
@@ -765,4 +778,236 @@ document.addEventListener('DOMContentLoaded', () => {
 // Hacer funciones disponibles globalmente
 window.cerrarSesion = cerrarSesion;
 window.irAlAdmin = irAlAdmin;
-window.guardarYGenerarCotizacion = guardarYGenerarCotizacion; 
+window.guardarYGenerarCotizacion = guardarYGenerarCotizacion;
+
+// ===== FUNCIONES DE EDICIÓN =====
+
+// Función para detectar modo de edición desde URL
+function detectarModoEdicion() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const modo = urlParams.get('modo');
+  
+  if (modo === 'editar') {
+    console.log('✏️ Modo de edición detectado');
+    modoEdicion = true;
+    cargarDatosEdicion();
+    return true;
+  }
+  
+  return false;
+}
+
+// Función para cargar datos de edición
+function cargarDatosEdicion() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  try {
+    // Cargar datos básicos
+    const id = urlParams.get('id');
+    const codigo = urlParams.get('codigo');
+    const nombre = urlParams.get('nombre');
+    const empresa = urlParams.get('empresa');
+    const email = urlParams.get('email');
+    const rut = urlParams.get('rut');
+    const atendido = urlParams.get('atendido');
+    const total = parseFloat(urlParams.get('total')) || 0;
+    const descuento = parseFloat(urlParams.get('descuento')) || 0;
+    const notas = urlParams.get('notas');
+    const estado = urlParams.get('estado');
+    
+    // Cargar servicios
+    let servicios = [];
+    try {
+      servicios = JSON.parse(urlParams.get('servicios') || '[]');
+    } catch (e) {
+      console.warn('⚠️ Error al parsear servicios:', e);
+    }
+    
+    // Guardar datos para edición
+    cotizacionEditando = {
+      id,
+      codigo,
+      nombre,
+      empresa,
+      email,
+      rut,
+      atendido,
+      servicios,
+      total,
+      descuento,
+      notas,
+      estado
+    };
+    
+    console.log('📝 Datos de edición cargados:', cotizacionEditando);
+    
+    // Llenar formulario
+    llenarFormularioEdicion();
+    
+    // Cambiar título y botón
+    cambiarUIEdicion();
+    
+  } catch (error) {
+    console.error('❌ Error al cargar datos de edición:', error);
+    mostrarResultado('Error al cargar datos para edición', 'error');
+  }
+}
+
+// Función para llenar el formulario con datos de edición
+function llenarFormularioEdicion() {
+  if (!cotizacionEditando) return;
+  
+  // Llenar campos básicos
+  const campos = {
+    'nombre': cotizacionEditando.nombre,
+    'empresa': cotizacionEditando.empresa,
+    'email': cotizacionEditando.email,
+    'rut': cotizacionEditando.rut,
+    'atendido': cotizacionEditando.atendido,
+    'descuento': cotizacionEditando.descuento,
+    'notas': cotizacionEditando.notas
+  };
+  
+  Object.entries(campos).forEach(([id, valor]) => {
+    const campo = document.getElementById(id);
+    if (campo && valor) {
+      campo.value = valor;
+    }
+  });
+  
+  // Llenar servicios
+  if (cotizacionEditando.servicios && cotizacionEditando.servicios.length > 0) {
+    cotizacionEditando.servicios.forEach(servicio => {
+      const checkbox = document.querySelector(`input[name="servicios"][value="${servicio.nombre}"]`);
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    });
+    
+    // Renderizar detalles de servicios
+    renderizarDetalles();
+    
+    // Llenar detalles de servicios
+    setTimeout(() => {
+      llenarDetallesServicios();
+    }, 100);
+  }
+}
+
+// Función para llenar detalles de servicios
+function llenarDetallesServicios() {
+  if (!cotizacionEditando.servicios) return;
+  
+  cotizacionEditando.servicios.forEach((servicio, index) => {
+    const servicioDiv = document.querySelector(`[data-servicio="${servicio.nombre}"]`);
+    if (servicioDiv) {
+      const detalleInput = servicioDiv.querySelector('textarea');
+      const precioInput = servicioDiv.querySelector('input[type="number"]');
+      
+      if (detalleInput) detalleInput.value = servicio.detalle || '';
+      if (precioInput) precioInput.value = servicio.precio || 0;
+      
+      // Recalcular subtotal
+      calcularSubtotal(index);
+    }
+  });
+}
+
+// Función para cambiar UI para edición
+function cambiarUIEdicion() {
+  // Cambiar título
+  const titulo = document.querySelector('.header h1');
+  if (titulo) {
+    titulo.textContent = '✏️ Editar Cotización';
+  }
+  
+  // Cambiar botón principal
+  const btnPrincipal = document.getElementById('descargar-pdf');
+  if (btnPrincipal) {
+    btnPrincipal.textContent = '💾 Actualizar Cotización';
+    btnPrincipal.onclick = actualizarCotizacion;
+  }
+  
+  // Agregar botón de cancelar
+  const btnCancelar = document.createElement('button');
+  btnCancelar.type = 'button';
+  btnCancelar.className = 'btn';
+  btnCancelar.style.background = 'linear-gradient(135deg, #6b7280, #9ca3af)';
+  btnCancelar.style.marginTop = '10px';
+  btnCancelar.textContent = '❌ Cancelar Edición';
+  btnCancelar.onclick = cancelarEdicion;
+  
+  const contenedorBotones = btnPrincipal?.parentElement;
+  if (contenedorBotones) {
+    contenedorBotones.appendChild(btnCancelar);
+  }
+}
+
+// Función para actualizar cotización
+async function actualizarCotizacion(event) {
+  event.preventDefault();
+  
+  if (!cotizacionEditando) {
+    mostrarResultado('No hay cotización para actualizar', 'error');
+    return;
+  }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Actualizando...';
+  
+  try {
+    console.log('✏️ Actualizando cotización:', cotizacionEditando.id);
+    
+    // Recopilar datos actualizados
+    const datosActualizados = recopilarDatosFormulario();
+    if (!datosActualizados) {
+      throw new Error('Error al recopilar datos del formulario');
+    }
+    
+    // Mantener ID original
+    datosActualizados.id = cotizacionEditando.id;
+    datosActualizados.codigo = cotizacionEditando.codigo;
+    
+    // Actualizar en Firestore
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const cotizacionRef = doc(db, 'cotizaciones', cotizacionEditando.id);
+    
+    await updateDoc(cotizacionRef, datosActualizados);
+    
+    console.log('✅ Cotización actualizada exitosamente');
+    mostrarResultado(`✅ Cotización ${datosActualizados.codigo} actualizada exitosamente!`, 'success');
+    
+    // Generar PDF actualizado
+    setTimeout(() => {
+      generarPDF(datosActualizados);
+    }, 1000);
+    
+    // Redirigir al admin después de un tiempo
+    setTimeout(() => {
+      if (window.router) {
+        window.router.navigate('/admin');
+      } else {
+        window.location.href = '/admin';
+      }
+    }, 3000);
+    
+  } catch (error) {
+    console.error('❌ Error al actualizar cotización:', error);
+    mostrarResultado(`❌ Error: ${error.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Actualizar Cotización';
+  }
+}
+
+// Función para cancelar edición
+function cancelarEdicion() {
+  if (confirm('¿Estás seguro de que quieres cancelar la edición? Los cambios no se guardarán.')) {
+    if (window.router) {
+      window.router.navigate('/admin');
+    } else {
+      window.location.href = '/admin';
+    }
+  }
+} 

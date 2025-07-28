@@ -12,8 +12,12 @@ function verificarAutenticacion() {
   
   auth.onAuthStateChanged((user) => {
     if (!user) {
-      console.log('❌ Usuario no autenticado, redirigiendo a login.html...');
-      window.location.href = 'login.html';
+          console.log('❌ Usuario no autenticado, redirigiendo a login...');
+    if (window.router) {
+      window.router.navigate('/login');
+    } else {
+      window.location.href = '/login';
+    }
       return;
     }
     
@@ -45,7 +49,11 @@ window.cerrarSesion = async function() {
     await signOut(auth);
     
     console.log('✅ Sesión cerrada exitosamente');
-    window.location.href = 'login.html';
+    if (window.router) {
+      window.router.navigate('/login');
+    } else {
+      window.location.href = '/login';
+    }
   } catch (error) {
     console.error('❌ Error al cerrar sesión:', error);
     alert('Error al cerrar sesión. Por favor, inténtalo de nuevo.');

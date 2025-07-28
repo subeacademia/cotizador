@@ -418,7 +418,7 @@ function agregarFirmaRepresentante() {
   }
   
   // Redirigir a la página de firma
-  window.location.href = `firmar-contrato.html?id=${contratoActual.id}`;
+          window.router.navigate(`/firmar-contrato?id=${contratoActual.id}`);
 }
 
 function generarLinkFirmaCliente() {
@@ -429,7 +429,7 @@ function generarLinkFirmaCliente() {
   }
   
   // Redirigir a la página de envío de firma
-  window.location.href = `enviar-firma.html?id=${contratoActual.id}`;
+          window.router.navigate(`/enviar-firma?id=${contratoActual.id}`);
 }
 
 function enviarPorEmail() {
@@ -770,7 +770,7 @@ function generarHTMLFirmas() {
 }
 
 function volverContratos() {
-  window.location.href = 'contratos.html';
+          window.router.navigate('/contratos');
 }
 
 // ===== FUNCIONES DE UTILIDAD =====

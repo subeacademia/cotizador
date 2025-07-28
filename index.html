@@ -170,7 +170,7 @@
         <button class="btn btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
       </div>
       <div style="margin-top: 10px;">
-        <a href="login.html" class="btn btn-admin" style="text-decoration: none; display: inline-block;">🔐 Acceso Administrativo</a>
+        <a href="/login" class="btn btn-admin" style="text-decoration: none; display: inline-block;">🔐 Acceso Administrativo</a>
       </div>
     </div>
     
@@ -332,5 +332,9 @@
   
   <!-- Script del cotizador -->
   <script type="module" src="js/script.js"></script>
+  
+  <!-- Sistema de Ruteo (cargado después de Firebase) -->
+  <script src="js/router.js"></script>
+  <script src="js/navigation.js"></script>
 </body>
 </html> 

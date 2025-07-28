@@ -57,7 +57,11 @@ async function manejarLogin(event) {
     console.log('✅ Autenticación exitosa:', userCredential.user.email);
     
     // Redirigir al panel de administración
-    window.location.href = 'admin.html';
+    if (window.router) {
+      window.router.navigate('/admin');
+    } else {
+      window.location.href = '/admin';
+    }
     
   } catch (error) {
     console.error('❌ Error de autenticación:', error);
@@ -119,7 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged((user) => {
     if (user) {
       console.log('✅ Usuario ya autenticado, redirigiendo...');
-      window.location.href = 'admin.html';
+      if (window.router) {
+        window.router.navigate('/admin');
+      } else {
+        window.location.href = '/admin';
+      }
     }
   });
 }); 

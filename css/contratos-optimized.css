@@ -1,243 +1,546 @@
-/* ===== OPTIMIZACIONES ESPECÍFICAS PARA CARDS DE CONTRATOS ===== */
+/* ===== DISEÑO MINIMALISTA Y OPTIMIZADO PARA TARJETAS DE CONTRATOS ===== */
 
-/* Mejoras adicionales para las cards */
-.cotizacion-card {
-  /* Optimización de rendimiento */
-  will-change: transform;
-  backface-visibility: hidden;
-  
-  /* Mejor organización del contenido */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  
-  /* Altura mínima optimizada */
-  min-height: 260px;
-  max-height: 320px;
+/* Contenedor principal */
+.cotizaciones-section {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Header más compacto */
-.cotizacion-header {
+/* Contenedor principal de tarjetas */
+.cotizaciones-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Tarjeta base - Diseño minimalista */
+.cotizacion-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 360px; /* Altura fija para consistencia */
+  width: 100%;
   position: relative;
-  z-index: 2;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.cotizacion-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+/* Header de la tarjeta */
+.cotizacion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .cotizacion-header h3 {
-  /* Mejor manejo de texto largo */
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.3;
+  max-width: 60%;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-word;
+  white-space: nowrap;
 }
 
-/* Nuevo elemento header-meta */
+/* Meta información del header */
 .header-meta {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
   align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .header-meta .fecha {
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
   background: rgba(0, 212, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-weight: 500;
   white-space: nowrap;
 }
 
-.header-meta .estado {
+/* Estados con mejor diseño */
+.estado {
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-/* Información del cliente más compacta */
-.cliente-info {
-  /* Mejor organización visual */
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-xs);
-  align-items: start;
-}
-
-.cliente-info p {
-  margin: 0;
-  font-size: var(--text-xs);
-  line-height: 1.2;
-}
-
-/* Total más prominente pero compacto */
-.total-info {
-  /* Mejor jerarquía visual */
-  font-weight: 800;
   letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  
-  /* Animación sutil */
-  transition: all var(--transition-normal);
+  white-space: nowrap;
+  border: 1px solid;
 }
 
-.total-info:hover {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
-}
-
-/* Nuevo elemento contrato-meta */
-.contrato-meta {
-  margin-top: var(--spacing-xs);
-  padding-top: var(--spacing-xs);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.contrato-meta p {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  line-height: 1.3;
-}
-
-/* Acciones más organizadas */
-.cotizacion-actions {
-  /* Mejor distribución */
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
-  gap: var(--spacing-xs);
-  align-items: center;
-}
-
-/* Estados más compactos */
-.estado {
-  /* Mejor legibilidad */
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  
-  /* Mejor contraste */
-  backdrop-filter: blur(4px);
-}
-
-/* Mejoras para dispositivos móviles */
-@media (max-width: 768px) {
-  .cotizacion-card {
-    min-height: 220px;
-    max-height: 280px;
-  }
-  
-  .cliente-info {
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-  
-  .cotizacion-actions {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-  }
-  
-  .btn-action {
-    min-width: 28px;
-    height: 28px;
-    font-size: 10px;
-  }
-  
-  .header-meta {
-    flex-direction: row;
-    gap: var(--spacing-xs);
-  }
-}
-
-/* Mejoras para pantallas grandes */
-@media (min-width: 1400px) {
-  .cotizaciones-list {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  
-  .cotizacion-card {
-    min-height: 240px;
-  }
-}
-
-/* Animaciones optimizadas */
-.cotizacion-card {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cotizacion-card:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-/* Mejoras de accesibilidad */
-.cotizacion-card:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Optimización de carga */
-.cotizacion-card {
-  contain: layout style paint;
-}
-
-/* Mejoras de tipografía */
-.cotizacion-body p {
-  font-feature-settings: "kern" 1, "liga" 1;
-  text-rendering: optimizeLegibility;
-}
-
-/* Estados con mejor contraste */
 .estado-firmado {
   background: rgba(16, 185, 129, 0.15);
   color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .estado-pendiente-de-firma {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .estado-enviado {
   background: rgba(59, 130, 246, 0.15);
   color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .estado-pendiente-de-completar {
   background: rgba(156, 163, 175, 0.15);
   color: #9ca3af;
-  border: 1px solid rgba(156, 163, 175, 0.3);
-  box-shadow: 0 0 0 1px rgba(156, 163, 175, 0.1);
+  border-color: rgba(156, 163, 175, 0.3);
 }
 
 .estado-finalizado {
   background: rgba(139, 92, 246, 0.15);
   color: #8b5cf6;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
 }
 
-/* Mejoras para modo oscuro */
-@media (prefers-color-scheme: dark) {
+/* Cuerpo de la tarjeta */
+.cotizacion-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+/* Información del cliente - Diseño compacto */
+.cliente-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(0, 212, 255, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.cliente-info p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-info p strong {
+  color: #00d4ff;
+  margin-right: 4px;
+}
+
+/* Información del total - Destacada */
+.total-info {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(255, 78, 255, 0.1) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.monto-info {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+.total-info strong {
+  color: #00d4ff;
+}
+
+.total-info small {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+/* Meta información del contrato */
+.contrato-meta {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.contrato-meta p {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contrato-meta p:last-child {
+  margin-bottom: 0;
+}
+
+.contrato-meta p strong {
+  color: #00d4ff;
+  margin-right: 4px;
+}
+
+/* Acciones - Botones bien organizados */
+.cotizacion-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* Botones de acción */
+.btn-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  backdrop-filter: blur(5px);
+  flex-shrink: 0;
+}
+
+.btn-action svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  display: block;
+  pointer-events: none;
+}
+
+/* Estilos para emoticonos */
+.btn-action {
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action:hover {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: rgba(0, 212, 255, 0.4);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-action:active {
+  transform: translateY(0);
+}
+
+/* Variantes de botones */
+.btn-action.btn-primary {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+}
+
+.btn-action.btn-primary:hover {
+  background: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+}
+
+.btn-action.btn-success {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.btn-action.btn-success:hover {
+  background: rgba(16, 185, 129, 0.3);
+  color: #ffffff;
+}
+
+.btn-action.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.btn-action.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+.btn-action.btn-info {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #06b6d4;
+}
+
+.btn-action.btn-info:hover {
+  background: rgba(6, 182, 212, 0.3);
+  color: #ffffff;
+}
+
+.btn-action.btn-warning {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+.btn-action.btn-warning:hover {
+  background: rgba(245, 158, 11, 0.3);
+  color: #ffffff;
+}
+
+.btn-action.btn-secondary {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.4);
+  color: #6b7280;
+}
+
+.btn-action.btn-secondary:hover {
+  background: rgba(107, 114, 128, 0.3);
+  color: #ffffff;
+}
+
+/* ===== TABLERO KANBAN ===== */
+.kanban-board {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  min-height: 600px;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.kanban-column {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  min-width: 320px;
+  max-width: 320px;
+  flex-shrink: 0;
+}
+
+.kanban-column-header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px 12px 0 0;
+}
+
+.kanban-column-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.column-count {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: center;
+}
+
+.kanban-column-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Estilos específicos para cada columna */
+.kanban-column:nth-child(1) .kanban-column-header {
+  border-left: 4px solid #f59e0b;
+}
+
+.kanban-column:nth-child(2) .kanban-column-header {
+  border-left: 4px solid #3b82f6;
+}
+
+.kanban-column:nth-child(3) .kanban-column-header {
+  border-left: 4px solid #10b981;
+}
+
+.kanban-column:nth-child(4) .kanban-column-header {
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .cotizaciones-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+  
   .cotizacion-card {
-    background: rgba(26, 27, 38, 0.8);
-    border-color: rgba(255, 255, 255, 0.08);
+    height: auto;
+    min-height: 320px;
   }
   
   .cliente-info {
-    background: rgba(0, 212, 255, 0.03);
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
+  
+  .cotizacion-actions {
+    gap: 6px;
+  }
+  
+  .btn-action {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .kanban-board {
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .kanban-column {
+    min-width: 280px;
+    max-width: 280px;
+    min-height: 400px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .cotizaciones-list {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+/* Estados de carga y error */
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  grid-column: 1 / -1;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  grid-column: 1 / -1;
+}
+
+/* Animaciones suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cotizacion-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Mejoras de accesibilidad */
+.cotizacion-card:focus-within {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+.btn-action:focus {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+/* Optimización para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .cotizacion-card {
+    background: rgba(17, 24, 39, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Estilos para scroll horizontal */
+.kanban-board::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
 }
 
 /* Optimización para impresión */
@@ -246,9 +549,20 @@
     break-inside: avoid;
     box-shadow: none;
     border: 1px solid #ccc;
+    background: white;
+    color: black;
   }
   
   .cotizacion-actions {
     display: none;
   }
+}
+
+/* Asegurar que el contenedor principal no se desborde */
+.admin-content,
+.admin-main {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 } 

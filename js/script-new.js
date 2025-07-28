@@ -155,7 +155,7 @@ function configurarUIUsuarioNoAutenticado() {
 }
 
 function irAlAdmin() {
-  window.location.href = 'admin.html';
+          window.router.navigate('/admin');
 }
 
 // ===== FUNCIONES DEL COTIZADOR =====
@@ -630,7 +630,7 @@ async function guardarYGenerarCotizacion(event) {
     // Redirigir a la página de previsualización
     console.log('🔄 Redirigiendo a previsualización...');
     setTimeout(() => {
-      window.location.href = `preview.html?id=${datos.codigo}`;
+              window.router.navigate(`/preview?id=${datos.codigo}`);
     }, 1500);
 
   } catch (error) {

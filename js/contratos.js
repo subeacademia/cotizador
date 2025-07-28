@@ -165,18 +165,60 @@ function actualizarEstadisticas() {
 }
 
 function renderizarContratos() {
-  if (!contratosList) return;
-  
-  console.log('🎨 Renderizando contratos...');
+  console.log('🎨 Renderizando contratos en tablero kanban...');
   console.log('📊 Total de contratos:', contratos.length);
   
   if (contratos.length === 0) {
-    contratosList.innerHTML = '<div class="no-data">No hay contratos disponibles</div>';
+    // Limpiar todas las columnas
+    limpiarColumnasKanban();
     return;
   }
   
-  const html = contratos.map(contrato => {
-    return `
+  // Ordenar contratos por fecha de creación (más recientes primero)
+  const contratosOrdenados = [...contratos].sort((a, b) => {
+    const fechaA = a.fechaCreacionContrato?.toDate ? a.fechaCreacionContrato.toDate() : new Date(a.fechaCreacionContrato);
+    const fechaB = b.fechaCreacionContrato?.toDate ? b.fechaCreacionContrato.toDate() : new Date(b.fechaCreacionContrato);
+    return fechaB - fechaA;
+  });
+  
+  // Limpiar columnas
+  limpiarColumnasKanban();
+  
+  // Distribuir contratos en columnas según estado
+  contratosOrdenados.forEach(contrato => {
+    const tarjetaHTML = generarTarjetaContrato(contrato);
+    const estado = contrato.estadoContrato || 'Pendiente de Firma';
+    
+    let columnaId = '';
+    switch (estado) {
+      case 'Pendiente de Firma':
+        columnaId = 'column-pendiente-firma';
+        break;
+      case 'Enviado':
+        columnaId = 'column-enviado';
+        break;
+      case 'Firmado':
+        columnaId = 'column-firmado';
+        break;
+      case 'Finalizado':
+        columnaId = 'column-finalizado';
+        break;
+      default:
+        columnaId = 'column-pendiente-firma';
+    }
+    
+    const columna = document.getElementById(columnaId);
+    if (columna) {
+      columna.insertAdjacentHTML('beforeend', tarjetaHTML);
+    }
+  });
+  
+  // Actualizar contadores
+  actualizarContadoresKanban();
+}
+
+function generarTarjetaContrato(contrato) {
+  return `
     <div class="cotizacion-card">
       <div class="cotizacion-header">
         <h3>${contrato.tituloContrato || contrato.codigoCotizacion || 'Sin título'}</h3>
@@ -205,51 +247,66 @@ function renderizarContratos() {
         </div>
       </div>
       <div class="cotizacion-actions">
-        <button class="btn btn-action" onclick="verDetallesContrato('${contrato.id}')" title="Ver Detalles">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-          </svg>
+        <button class="btn btn-action btn-info" onclick="verDetallesContrato('${contrato.id}')" title="Ver Detalles">
+          👁️
         </button>
-        <button class="btn btn-action" onclick="editarContrato('${contrato.id}')" title="Editar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-          </svg>
+        <button class="btn btn-action btn-warning" onclick="editarContrato('${contrato.id}')" title="Editar">
+          ✏️
         </button>
-        <button class="btn btn-action" onclick="generarPDFContrato('${contrato.id}')" title="Ver PDF">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-          </svg>
+        <button class="btn btn-action btn-primary" onclick="generarPDFContrato('${contrato.id}')" title="Ver PDF">
+          📄
         </button>
         <button class="btn btn-action btn-danger" onclick="eliminarContrato('${contrato.id}')" title="Eliminar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-          </svg>
+          🗑️
         </button>
         ${contrato.estadoContrato === 'Pendiente de Completar' ? `
         <button class="btn btn-action btn-success" onclick="mostrarModalCompletarContrato('${contrato.id}')" title="Completar y Firmar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
+          ✅
         </button>
         ` : ''}
         ${contrato.estadoContrato === 'Pendiente de Firma' ? `
         <button class="btn btn-action btn-success" onclick="console.log('🔘 Botón Firmar como Representante clickeado'); firmarComoRepresentante('${contrato.id}')" title="Firmar como Representante">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-          </svg>
+          ✍️
         </button>
         <button class="btn btn-action btn-primary" onclick="enviarFirmaContrato('${contrato.id}')" title="Enviar Firma al Cliente">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
+          📤
         </button>
         ` : ''}
       </div>
     </div>
   `;
-  }).join('');
+}
+
+function limpiarColumnasKanban() {
+  const columnas = [
+    'column-pendiente-firma',
+    'column-enviado', 
+    'column-firmado',
+    'column-finalizado'
+  ];
   
-  contratosList.innerHTML = html;
+  columnas.forEach(columnaId => {
+    const columna = document.getElementById(columnaId);
+    if (columna) {
+      columna.innerHTML = '';
+    }
+  });
+}
+
+function actualizarContadoresKanban() {
+  const contadores = {
+    'count-pendiente-firma': document.getElementById('column-pendiente-firma')?.children.length || 0,
+    'count-enviado': document.getElementById('column-enviado')?.children.length || 0,
+    'count-firmado': document.getElementById('column-firmado')?.children.length || 0,
+    'count-finalizado': document.getElementById('column-finalizado')?.children.length || 0
+  };
+  
+  Object.entries(contadores).forEach(([id, count]) => {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+      elemento.textContent = count;
+    }
+  });
 }
 
 function filtrarContratos() {
@@ -1021,7 +1078,7 @@ async function guardarContratoCompletado() {
     // Mostrar notificación y redirigir a firma
     mostrarNotificacion('Contrato completado. Redirigiendo a firma...', 'success');
     setTimeout(() => {
-      window.location.href = `firmar-contrato.html?id=${contratoId}`;
+      window.router.navigate(`/firmar-contrato?id=${contratoId}`);
     }, 1500);
     
   } catch (error) {
@@ -1042,7 +1099,7 @@ function generarPDFContrato(contratoId) {
   
   // Siempre mostrar el contrato, no la cotización
   const contratoData = encodeURIComponent(JSON.stringify(contrato));
-  window.location.href = `preview-contrato.html?data=${contratoData}&pdf=true`;
+  window.router.navigate(`/preview-contrato?data=${contratoData}&pdf=true`);
 }
 
 // Función para enviar firma del contrato
@@ -1056,7 +1113,7 @@ function enviarFirmaContrato(contratoId) {
   }
   
   // Redirigir a la página de envío de firma
-  window.location.href = `enviar-firma.html?id=${contratoId}`;
+  window.router.navigate(`/enviar-firma?id=${contratoId}`);
 }
 
 // Función para eliminar contrato
@@ -1102,10 +1159,10 @@ function firmarComoRepresentante(contratoId) {
   }
   
   console.log('✅ Contrato encontrado:', contrato.tituloContrato);
-  console.log('✅ URL de redirección:', `firmar-contrato.html?id=${contratoId}`);
+  console.log('✅ URL de redirección:', `/firmar-contrato?id=${contratoId}`);
   
   // Redirigir a la página de firma con el ID del contrato
-  window.location.href = `firmar-contrato.html?id=${contratoId}`;
+  window.router.navigate(`/firmar-contrato?id=${contratoId}`);
 }
 
 // Hacer funciones disponibles globalmente

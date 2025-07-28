@@ -347,7 +347,7 @@ async function generarLinkFirma() {
     
     // Generar URL del link
     const baseUrl = window.location.origin;
-    const linkCompleto = `${baseUrl}/firmar-contrato-cliente.html?token=${tokenFirma}&id=${contratoActual.id}`;
+    const linkCompleto = `${baseUrl}/firmar-contrato-cliente?token=${tokenFirma}&id=${contratoActual.id}`;
     
     linkFirmaGenerado = linkCompleto;
     
@@ -650,7 +650,7 @@ function copiarLink() {
 
 // ===== VOLVER A CONTRATOS =====
 function volverContratos() {
-  window.location.href = 'contratos.html';
+          window.router.navigate('/contratos');
 }
 
 // ===== GENERAR TOKEN ÚNICO =====

@@ -15,7 +15,7 @@
         <h1>📋 Gestión de Contratos</h1>
         <div class="header-actions">
           <h2>SUBE IA TECH</h2>
-          <a href="admin.html" class="btn btn-primary">Volver al Admin</a>
+          <a href="/admin" class="btn btn-primary">Volver al Admin</a>
           <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
         </div>
       </div>
@@ -92,7 +92,7 @@
 
       <div class="cotizaciones-section">
         <div class="section-header">
-          <h2>📋 Lista de Contratos</h2>
+          <h2>📋 Tablero de Contratos</h2>
           <button class="btn btn-primary" onclick="mostrarModalCrearContrato()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
@@ -100,7 +100,56 @@
             Crear Contrato Directo
           </button>
         </div>
-        <div id="contratos-list" class="cotizaciones-list">
+        
+        <!-- Tablero Kanban -->
+        <div class="kanban-board">
+          <!-- Columna: Pendiente de Firma -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>⏳ Pendiente de Firma</h3>
+              <span class="column-count" id="count-pendiente-firma">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-pendiente-firma">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Enviado -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>📤 Enviado</h3>
+              <span class="column-count" id="count-enviado">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-enviado">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Firmado -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>✅ Firmado</h3>
+              <span class="column-count" id="count-firmado">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-firmado">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Finalizado -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>🎉 Finalizado</h3>
+              <span class="column-count" id="count-finalizado">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-finalizado">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Vista de lista tradicional (oculta por defecto) -->
+        <div id="contratos-list" class="cotizaciones-list" style="display: none;">
           <div class="loading">Cargando contratos...</div>
         </div>
       </div>

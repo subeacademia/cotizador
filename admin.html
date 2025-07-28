@@ -14,8 +14,8 @@
         <h1>📊 Panel de Administración</h1>
         <div class="header-actions">
           <h2>SUBE IA TECH</h2>
-          <a href="index.html" class="btn btn-primary">Crear Nueva Cotización</a>
-          <a href="contratos.html" class="btn btn-success">📋 Gestión de Contratos</a>
+                  <a href="/" class="btn btn-primary">Crear Nueva Cotización</a>
+        <a href="/contratos" class="btn btn-success">📋 Gestión de Contratos</a>
           <button onclick="cerrarSesion()" class="btn btn-logout">Cerrar Sesión</button>
         </div>
       </div>
@@ -104,8 +104,68 @@
       </div>
 
       <div class="cotizaciones-section">
-        <h2>📋 Lista de Cotizaciones</h2>
-        <div id="cotizaciones-list" class="cotizaciones-list">
+        <h2>📋 Tablero de Cotizaciones</h2>
+        
+        <!-- Tablero Kanban -->
+        <div class="kanban-board">
+          <!-- Columna: Emitida -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>📄 Emitida</h3>
+              <span class="column-count" id="count-emitida">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-emitida">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Contestada -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>💬 Contestada</h3>
+              <span class="column-count" id="count-contestada">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-contestada">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: En Negociación -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>🤝 En Negociación</h3>
+              <span class="column-count" id="count-en-negociacion">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-en-negociacion">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Aceptada -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>✅ Aceptada</h3>
+              <span class="column-count" id="count-aceptada">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-aceptada">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+          
+          <!-- Columna: Rechazada -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h3>❌ Rechazada</h3>
+              <span class="column-count" id="count-rechazada">0</span>
+            </div>
+            <div class="kanban-column-content" id="column-rechazada">
+              <!-- Las tarjetas se insertarán aquí -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Vista de lista tradicional (oculta por defecto) -->
+        <div id="cotizaciones-list" class="cotizaciones-list" style="display: none;">
           <div class="loading">Cargando cotizaciones...</div>
         </div>
       </div>

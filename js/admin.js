@@ -213,66 +213,147 @@ async function actualizarEstadisticas() {
 }
 
 function renderizarCotizaciones() {
-  if (!cotizacionesList) return;
+  console.log('🎨 Renderizando cotizaciones en tablero kanban...');
+  console.log('📊 Total de cotizaciones:', cotizaciones.length);
   
   if (cotizaciones.length === 0) {
-    cotizacionesList.innerHTML = '<div class="no-data">No hay cotizaciones disponibles</div>';
+    // Limpiar todas las columnas
+    limpiarColumnasKanban();
     return;
   }
   
-  const html = cotizaciones.map(cotizacion => `
+  // Ordenar cotizaciones por fecha (más recientes primero)
+  const cotizacionesOrdenadas = [...cotizaciones].sort((a, b) => {
+    const fechaA = a.fechaTimestamp?.toDate ? a.fechaTimestamp.toDate() : new Date(a.fecha);
+    const fechaB = b.fechaTimestamp?.toDate ? b.fechaTimestamp.toDate() : new Date(b.fecha);
+    return fechaB - fechaA;
+  });
+  
+  // Limpiar columnas
+  limpiarColumnasKanban();
+  
+  // Distribuir cotizaciones en columnas según estado
+  cotizacionesOrdenadas.forEach(cotizacion => {
+    const tarjetaHTML = generarTarjetaCotizacion(cotizacion);
+    const estado = cotizacion.estado || 'Emitida';
+    
+    let columnaId = '';
+    switch (estado) {
+      case 'Emitida':
+        columnaId = 'column-emitida';
+        break;
+      case 'Contestada':
+        columnaId = 'column-contestada';
+        break;
+      case 'En Negociación':
+        columnaId = 'column-en-negociacion';
+        break;
+      case 'Aceptada':
+        columnaId = 'column-aceptada';
+        break;
+      case 'Rechazada':
+        columnaId = 'column-rechazada';
+        break;
+      default:
+        columnaId = 'column-emitida';
+    }
+    
+    const columna = document.getElementById(columnaId);
+    if (columna) {
+      columna.insertAdjacentHTML('beforeend', tarjetaHTML);
+    }
+  });
+  
+  // Actualizar contadores
+  actualizarContadoresKanban();
+}
+
+function generarTarjetaCotizacion(cotizacion) {
+  return `
     <div class="cotizacion-card">
       <div class="cotizacion-header">
         <h3>${cotizacion.codigo}</h3>
-        <span class="fecha">${formatearFecha(cotizacion.fecha)}</span>
-        <select class="estado-select" onchange="cambiarEstadoDirecto('${cotizacion.id}', this.value)">
-          <option value="Emitida" ${cotizacion.estado === 'Emitida' ? 'selected' : ''}>Emitida</option>
-          <option value="Contestada" ${cotizacion.estado === 'Contestada' ? 'selected' : ''}>Contestada</option>
-          <option value="En Negociación" ${cotizacion.estado === 'En Negociación' ? 'selected' : ''}>En Negociación</option>
-          <option value="Aceptada" ${cotizacion.estado === 'Aceptada' ? 'selected' : ''}>Aceptada</option>
-          <option value="Rechazada" ${cotizacion.estado === 'Rechazada' ? 'selected' : ''}>Rechazada</option>
-          <option value="Pendiente de Confirmación" ${cotizacion.estado === 'Pendiente de Confirmación' ? 'selected' : ''}>Pendiente de Confirmación</option>
-        </select>
+        <div class="header-meta">
+          <span class="fecha">${formatearFecha(cotizacion.fecha)}</span>
+          <span class="estado ${cotizacion.estado?.toLowerCase().replace(/\s+/g, '-')}">${cotizacion.estado || 'Emitida'}</span>
+        </div>
       </div>
       <div class="cotizacion-body">
         <div class="cliente-info">
-          <p><strong>👤 Cliente:</strong> ${cotizacion.nombre || 'No especificado'}</p>
-          <p><strong>🏢 Empresa:</strong> ${cotizacion.empresa || 'No especificada'}</p>
-          <p><strong>📧 Email:</strong> ${cotizacion.email || 'No especificado'}</p>
-          <p><strong>🆔 RUT:</strong> ${cotizacion.rut || 'No especificado'}</p>
+          <p><strong>👤</strong> ${cotizacion.nombre || 'No especificado'}</p>
+          <p><strong>🏢</strong> ${cotizacion.empresa || 'No especificada'}</p>
+          <p><strong>📧</strong> ${cotizacion.email || 'No especificado'}</p>
+          <p><strong>🆔</strong> ${cotizacion.rut || 'No especificado'}</p>
         </div>
-        <p><strong>👨‍💼 Atendido por:</strong> ${cotizacion.atendido || 'No especificado'}</p>
         <div class="total-info">
           <strong>💰 Total:</strong> $${(cotizacion.totalConDescuento || cotizacion.total || 0).toLocaleString()}
           ${cotizacion.descuento > 0 ? `<br><small>Descuento: ${cotizacion.descuento}%</small>` : ''}
         </div>
+        <div class="monto-info">
+          <strong>💵 Monto:</strong> $${(cotizacion.total || 0).toLocaleString()}
+          ${cotizacion.totalConDescuento && cotizacion.totalConDescuento !== cotizacion.total ? 
+            `<br><small>Con descuento: $${cotizacion.totalConDescuento.toLocaleString()}</small>` : ''}
+        </div>
+        <div class="contrato-meta">
+          <p><strong>👨‍💼</strong> ${cotizacion.atendido || 'No especificado'}</p>
+        </div>
       </div>
       <div class="cotizacion-actions">
-        <button class="btn btn-action" onclick="previsualizarCotizacion('${cotizacion.id}')" title="Previsualizar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-          </svg>
+        <button class="btn btn-action btn-info" onclick="previsualizarCotizacion('${cotizacion.id}')" title="Previsualizar">
+          👁️
         </button>
-        <button class="btn btn-action" onclick="generarPDFAlternativo('${cotizacion.id}')" title="Ver PDF">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-          </svg>
+        <button class="btn btn-action btn-warning" onclick="editarCotizacion('${cotizacion.id}')" title="Editar">
+          ✏️
         </button>
-        <button class="btn btn-action" onclick="verDetalles('${cotizacion.id}')" title="Ver Detalles">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
+        <button class="btn btn-action btn-primary" onclick="generarPDFAlternativo('${cotizacion.id}')" title="Ver PDF">
+          📄
+        </button>
+        <button class="btn btn-action btn-secondary" onclick="verDetalles('${cotizacion.id}')" title="Ver Detalles">
+          📋
+        </button>
+        <button class="btn btn-action btn-success" onclick="cambiarEstado('${cotizacion.id}')" title="Cambiar Estado">
+          🔄
         </button>
         <button class="btn btn-action btn-danger" onclick="eliminarCotizacion('${cotizacion.id}')" title="Eliminar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-          </svg>
+          🗑️
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+}
+
+function limpiarColumnasKanban() {
+  const columnas = [
+    'column-emitida',
+    'column-contestada',
+    'column-en-negociacion',
+    'column-aceptada',
+    'column-rechazada'
+  ];
   
-  cotizacionesList.innerHTML = html;
+  columnas.forEach(columnaId => {
+    const columna = document.getElementById(columnaId);
+    if (columna) {
+      columna.innerHTML = '';
+    }
+  });
+}
+
+function actualizarContadoresKanban() {
+  const contadores = {
+    'count-emitida': document.getElementById('column-emitida')?.children.length || 0,
+    'count-contestada': document.getElementById('column-contestada')?.children.length || 0,
+    'count-en-negociacion': document.getElementById('column-en-negociacion')?.children.length || 0,
+    'count-aceptada': document.getElementById('column-aceptada')?.children.length || 0,
+    'count-rechazada': document.getElementById('column-rechazada')?.children.length || 0
+  };
+  
+  Object.entries(contadores).forEach(([id, count]) => {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+      elemento.textContent = count;
+    }
+  });
 }
 
 function filtrarCotizaciones() {
@@ -760,7 +841,7 @@ function previsualizarCotizacion(cotizacionId) {
   }
   
   // Redirigir a la página de previsualización
-  window.location.href = `preview.html?id=${cotizacionId}`;
+          window.router.navigate(`/preview?id=${cotizacionId}`);
 }
 
 // Función alternativa para generar PDF usando el mismo enfoque que la previsualización
@@ -786,7 +867,7 @@ async function generarPDFAlternativo(cotizacionId) {
     console.log('💾 Datos guardados en sessionStorage para PDF alternativo');
     
     // Redirigir a la página de previsualización con parámetro para generar PDF automáticamente
-    window.location.href = `preview.html?id=${cotizacionId}&pdf=true`;
+            window.router.navigate(`/preview?id=${cotizacionId}&pdf=true`);
     
   } catch (error) {
     console.error('❌ Error en método alternativo:', error);
@@ -1445,6 +1526,49 @@ window.eliminarCotizacion = eliminarCotizacion;
 window.mostrarNotificacion = mostrarNotificacion;
 window.crearPreContrato = crearPreContrato;
 window.cargarCotizaciones = cargarCotizaciones; 
+window.editarCotizacion = editarCotizacion;
+
+// ===== FUNCIÓN PARA EDITAR COTIZACIÓN =====
+async function editarCotizacion(cotizacionId) {
+  console.log('✏️ Editando cotización:', cotizacionId);
+  
+  try {
+    // Buscar la cotización en el array local
+    const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
+    
+    if (!cotizacion) {
+      console.error('❌ Cotización no encontrada:', cotizacionId);
+      mostrarNotificacion('Cotización no encontrada', 'error');
+      return;
+    }
+    
+    console.log('📝 Cotización encontrada:', cotizacion);
+    
+    // Redirigir a la página de edición con los datos
+    const params = new URLSearchParams({
+      id: cotizacionId,
+      modo: 'editar',
+      codigo: cotizacion.codigo,
+      nombre: cotizacion.nombre || '',
+      empresa: cotizacion.empresa || '',
+      email: cotizacion.email || '',
+      rut: cotizacion.rut || '',
+      atendido: cotizacion.atendido || '',
+      servicios: JSON.stringify(cotizacion.servicios || []),
+      total: cotizacion.total || 0,
+      descuento: cotizacion.descuento || 0,
+      notas: cotizacion.notas || '',
+      estado: cotizacion.estado || 'Emitida'
+    });
+    
+    // Redirigir a la página principal para editar
+            window.router.navigate(`/?${params.toString()}`);
+    
+  } catch (error) {
+    console.error('❌ Error al editar cotización:', error);
+    mostrarNotificacion('Error al editar la cotización: ' + error.message, 'error');
+  }
+}
 
 // ===== VERIFICAR Y ACTUALIZAR ESTADO AUTOMÁTICO DE FIRMAS =====
 async function verificarYActualizarEstadoFirmas() {
